@@ -86,8 +86,8 @@ To get an item's ID: `gh project item-list 4 --owner AlexDeWilde --format json` 
 | 7 | 1.7 Visualize delay patterns | ✅ Done |
 | 8 | 2.1 Define leakage-safe feature set | ✅ Done |
 | 9 | 2.2 Engineer temporal features | ✅ Done |
-| **10** | **2.3 Engineer route/airport features** | 🟡 **In Progress** |
-| 11 | 2.4 Cascading-delay feature | ⚪ Backlog |
+| 10 | 2.3 Engineer route/airport features | ✅ Done |
+| **11** | **2.4 Cascading-delay feature** | 🟡 **In Progress** |
 | 12 | 2.5 Chronological train/test split | ⚪ Backlog |
 | 13 | 3.1 Baseline model + RMSE | ⚪ Backlog |
 | 14 | 3.2 Document business framing | ⚪ Backlog |
@@ -152,12 +152,21 @@ Added `holidays` as a dependency (`uv add holidays`) for the Tunisia holiday fla
 2. `dep_is_holiday` (1/0) via `holidays.Tunisia(...)`. **Gotcha logged:** match on `STD.dt.date` — `.dt.normalize().isin(tn_holidays)` silently returns all-False (Timestamp-vs-`date` key mismatch).
 3. Spot-check against raw rows (ordinary + holiday flights, with readable `weekday_name`/`holiday_name` helpers) — issue #9 DoD.
 
+### Phase 2.3 — Route/airport features ✅ DONE
+Four cells, all built and verified (values checked in the venv), on **both** train and test. Notably none of these need `STA`, so the corrupted-`STA` cleanup was NOT required here.
+1. `gc_distance_km` — great-circle (haversine) distance from dep/arr lat/lon.
+2. `tz_diff_hours` — arrival minus departure UTC offset, **DST-aware** (offsets evaluated at each flight's `STD` date; helper `tz_offset_hours` groups by tz name for a vectorized `tz_localize`). Verified e.g. `TUN->CDG` = 0 in winter / +1 in summer.
+3. `is_domestic` (1/0) + `country_pair` (e.g. `TN->FR`). Domestic ≈ 17.5% of rows; ~195 country pairs.
+4. Sanity-check table vs known routes (TUN->DJE/ALG/IST, MXP->TUN, TUN->CDG/JED) + takeaway — issue #10 DoD.
+
+**Scheduled-duration feature was deliberately skipped** (would need `STA` cleaned first) — logged as a Phase 6.2 candidate in ISSUES.md; `gc_distance_km` already proxies flight length.
+
 ---
 
 ## 6. Data-quality issues log
 
 All quirks are tracked in [ISSUES.md](ISSUES.md). Current entries (newest first):
-1. **Corrupted `STA` dates** — a few flights have implausible durations (max ~11,992h) from wrong date components in `STA`. Doesn't affect `target`, but will poison duration features. **Decision deferred to Phase 2.3** (drop/clip vs. recompute date from `DATOP`).
+1. **Corrupted `STA` dates** — a few flights have implausible durations (max ~11,992h) from wrong date components in `STA`. Doesn't affect `target`, but will poison duration features. **Resolved for now:** Phase 2.3 built no duration feature (distance/tz/country need no `STA`), so no cleanup was required; a scheduled-duration feature is a Phase 6.2 candidate that would need the cleanup first.
 2. **Notebook order vs board** — notebook was reorganized so sections mirror the board 1:1. Reordering cleared cell outputs — **re-run the notebook top to bottom.**
 3. **`SXF` missing from airportsdata** — manually overridden.
 
@@ -167,9 +176,10 @@ All quirks are tracked in [ISSUES.md](ISSUES.md). Current entries (newest first)
 
 **Immediate:** the notebook's Phase 1.7 cells (and anything after the reorg) need a fresh **Run All** in VS Code to regenerate outputs/charts. Confirm the charts match the written takeaways.
 
-**Current board item — #10 (Phase 2.3, In Progress):** Engineer route/airport features via the Phase 1.2 airport enrichment — country pair, great-circle distance, timezone difference between departure and arrival airports. **Prerequisite (do first): clean the corrupted `STA` dates** (see ISSUES.md) before building any duration-based feature; distance/country-pair/tz-gap features don't need `STA` and can proceed regardless. When done and approved, move #10 → Done and advance #11 (Phase 2.4) → In Progress.
-- **#10 (2.3)** Route/airport features: country pair, great-circle distance, timezone difference — **clean the corrupted `STA` dates first** if building duration.
-- **#11 (2.4)** Cascading-delay feature: per aircraft (`AC`), prior leg's delay — **must be leakage-safe (only prior legs, never future).**
+**Current board item — #11 (Phase 2.4, In Progress):** Cascading-delay feature — per aircraft (`AC`), the prior leg's delay. **Most leakage-sensitive feature in the project:** must use only *strictly prior* legs of each tail (order by `STD`), never the current or future leg. Using a prior leg's `target` as a feature is legitimate (it's historically known before the current departure), but the design must be signed off before coding. Open design questions: same-day gating of the cascade, missing-value handling for a tail's first leg, and how to handle the Zindi test set (its prior legs may be unlabeled — likely deferred to submission time).
+- **#12 (2.5)** Chronological train/validation split by a `DATOP` date cutoff (NOT random). Reserve `test.csv` for Zindi submission only.
+- **#13 (3.1)** Baseline model (e.g. mean/per-route median delay) + RMSE → the number to beat (Milestone 1).
+- **#14 (3.2)** Document business framing (already drafted in the Phase 3.2 notebook cell).
 - **#12 (2.5)** Chronological train/validation split by a `DATOP` date cutoff (NOT random). Reserve `test.csv` for Zindi submission only.
 - **#13 (3.1)** Baseline model (e.g. mean/per-route median delay) + RMSE → the number to beat (Milestone 1).
 - **#14 (3.2)** Document business framing (already drafted in the Phase 3.2 notebook cell).
