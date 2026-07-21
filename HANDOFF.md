@@ -46,29 +46,30 @@ These conventions were established during the session and should be respected go
 
 ## 3. GitHub project board reference
 
-- **Project:** "Flight Delay Prediction", **project #5**, owner **sulugambari**.
-  URL: https://github.com/users/sulugambari/projects/5
-- **Repo the issues live on:** `AlexDeWilde/0721-ds-ml-project-template`
-  (The project is under sulugambari's account because GitHub blocks linking a project to a repo owned by a different user; both have admin.)
+- **Project:** "@AlexDeWilde's ML Project", **project #4**, owner **AlexDeWilde** — the single canonical board.
+  URL: https://github.com/users/AlexDeWilde/projects/4
+- **Repo the issues live on:** `AlexDeWilde/0721-ds-ml-project-template` (project #4 is linked to this repo).
 - **31 issues** across 8 phases.
+
+> **History note (corrected 2026-07-21):** an earlier version of this handoff pointed at a *second* board, `sulugambari` project #5. That board has since been **deleted** — it was a duplicate created during Sulu's session and its IDs no longer resolve. There is now only **one** board: #4, owned by AlexDeWilde and linked to the repo. Both teammates work the same #4 board via project-level access (see §8 for how sulugambari gets in).
 
 ### Useful CLI snippets for board updates
 ```bash
 # List all items with their status
-gh project item-list 5 --owner sulugambari --format json --limit 50
+gh project item-list 4 --owner AlexDeWilde --format json --limit 50
 
-# Status field id: PVTSSF_lAHOAoc7qc4BeAE5zhYde-I
-# Project id:      PVT_kwHOAoc7qc4BeAE5
+# Project id:      PVT_kwHOELY1284BeADV
+# Status field id: PVTSSF_lAHOELY1284BeADVzhYddlc
 # Status option ids:
-#   Backlog=0be3c144  Ready=2dda5a79  In Progress=b9ef4cc9  Done=38c33c8a  Blocked=1a4144a7
+#   Backlog=f75ad846  Ready=61e4505c  In progress=47fc9ee4  Done=98236657  Blocked!=df73e18b
 
 # Example: move an item to Done
-gh project item-edit --project-id "PVT_kwHOAoc7qc4BeAE5" \
+gh project item-edit --project-id "PVT_kwHOELY1284BeADV" \
   --id "<ITEM_ID>" \
-  --field-id "PVTSSF_lAHOAoc7qc4BeAE5zhYde-I" \
-  --single-select-option-id "38c33c8a"
+  --field-id "PVTSSF_lAHOELY1284BeADVzhYddlc" \
+  --single-select-option-id "98236657"
 ```
-To get an item's ID: `gh project item-list 5 --owner sulugambari --format json` and look up by issue number.
+To get an item's ID: `gh project item-list 4 --owner AlexDeWilde --format json` and look up by issue number.
 
 ---
 
@@ -83,9 +84,9 @@ To get an item's ID: `gh project item-list 5 --owner sulugambari --format json` 
 | 5 | 1.5 Temporal range & ordering | ✅ Done |
 | 6 | 1.6 Leakage audit | ✅ Done |
 | 7 | 1.7 Visualize delay patterns | ✅ Done |
-| **8** | **2.1 Define leakage-safe feature set** | 🟡 **In Progress** |
-| 9 | 2.2 Engineer temporal features | 🔵 Ready |
-| 10 | 2.3 Engineer route/airport features | 🔵 Ready |
+| 8 | 2.1 Define leakage-safe feature set | ✅ Done |
+| 9 | 2.2 Engineer temporal features | ✅ Done |
+| **10** | **2.3 Engineer route/airport features** | 🟡 **In Progress** |
 | 11 | 2.4 Cascading-delay feature | ⚪ Backlog |
 | 12 | 2.5 Chronological train/test split | ⚪ Backlog |
 | 13 | 3.1 Baseline model + RMSE | ⚪ Backlog |
@@ -142,9 +143,14 @@ Table documenting which columns are known pre-departure. `STATUS` flagged leaky 
 **Note:** `TUN->TUN` (same dep/arr airport) exists — likely maintenance/positioning flights; flagged, harmless to label.
 **Implication:** prioritize **departure hour, route, month/season** as features.
 
-### Phase 2.1 — Leakage-safe feature set (IN PROGRESS)
-Done: the leaky `STATUS` column is dropped from both train and test.
-**Still to do:** write the documented final feature list with justification (see "What's next").
+### Phase 2.1 — Leakage-safe feature set ✅ DONE
+The leaky `STATUS` column is dropped from both train and test, **and** a markdown cell now documents the final leakage-safe feature set (keep/exclude table with justification) — bringing the notebook in line with board issue #8. No code beyond the `STATUS` drop; the feature-set decision is the deliverable.
+
+### Phase 2.2 — Temporal features ✅ DONE
+Added `holidays` as a dependency (`uv add holidays`) for the Tunisia holiday flag. Three cells, all built and verified in VS Code:
+1. `dep_hour`, `dep_dow`, `dep_month` on **both** train and test (formalizing the Phase 1.7 train-only EDA helpers).
+2. `dep_is_holiday` (1/0) via `holidays.Tunisia(...)`. **Gotcha logged:** match on `STD.dt.date` — `.dt.normalize().isin(tn_holidays)` silently returns all-False (Timestamp-vs-`date` key mismatch).
+3. Spot-check against raw rows (ordinary + holiday flights, with readable `weekday_name`/`holiday_name` helpers) — issue #9 DoD.
 
 ---
 
@@ -161,13 +167,7 @@ All quirks are tracked in [ISSUES.md](ISSUES.md). Current entries (newest first)
 
 **Immediate:** the notebook's Phase 1.7 cells (and anything after the reorg) need a fresh **Run All** in VS Code to regenerate outputs/charts. Confirm the charts match the written takeaways.
 
-**Next board item — #8 (Phase 2.1), to finish:** add a markdown cell documenting the final leakage-safe feature set with justification:
-- **Keep:** `DEPSTN`, `ARRSTN` (route), `AC` (aircraft), `STD`-derived time fields (hour, day-of-week, month), airport enrichment (`dep_*`/`arr_*`), plus engineered features from Phases 2.2–2.4.
-- **Exclude:** `STATUS` (leaky, dropped), `ID`/`FLTID` (identifiers), `target` (label). Handle `STA` carefully (schedule is known pre-departure, but corrupted dates make raw duration risky).
-- Then move **#8 → Done**.
-
-**Then, in board order:**
-- **#9 (2.2)** Engineer temporal features: hour, day-of-week, month, Tunisia holiday flag from `STD`.
+**Current board item — #10 (Phase 2.3, In Progress):** Engineer route/airport features via the Phase 1.2 airport enrichment — country pair, great-circle distance, timezone difference between departure and arrival airports. **Prerequisite (do first): clean the corrupted `STA` dates** (see ISSUES.md) before building any duration-based feature; distance/country-pair/tz-gap features don't need `STA` and can proceed regardless. When done and approved, move #10 → Done and advance #11 (Phase 2.4) → In Progress.
 - **#10 (2.3)** Route/airport features: country pair, great-circle distance, timezone difference — **clean the corrupted `STA` dates first** if building duration.
 - **#11 (2.4)** Cascading-delay feature: per aircraft (`AC`), prior leg's delay — **must be leakage-safe (only prior legs, never future).**
 - **#12 (2.5)** Chronological train/validation split by a `DATOP` date cutoff (NOT random). Reserve `test.csv` for Zindi submission only.
@@ -181,7 +181,7 @@ All quirks are tracked in [ISSUES.md](ISSUES.md). Current entries (newest first)
 
 ## 8. Environment & repo notes
 
-- **Package manager:** `uv`. Install new deps with `uv add <package>` (updates `pyproject.toml` + `uv.lock` for the team). e.g. `uv add xgboost` when you reach Phase 4.3.
+- **Package manager:** `uv`. Install new deps with `uv add <package>` (updates `pyproject.toml` + `uv.lock` for the team). Added so far: `airportsdata`, `holidays` (Tunisia holiday flag, Phase 2.2). e.g. `uv add xgboost` when you reach Phase 4.3.
 - **Venv:** `.venv/` (Python 3.13). Run scripts with `.venv/bin/python`.
 - **Notebook merge conflicts:** enable nbdime once — `uvx nbdime config-git --enable`; resolve with `uvx nbdime mergetool`. Clear cell outputs before committing to reduce conflicts (`Notebook: Clear All Outputs`).
 - **Uncommitted at session end:** modified `04_flight_delay_eda_modeling.ipynb`, new `ISSUES.md`, new `HANDOFF.md`, and the lowercase `data/*.csv` files (the original uppercase `Train.csv`/`Test.csv`/`SampleSubmission.csv` show as deleted). There is also a stray empty `xx` file marked deleted. Review with `git status` before committing.

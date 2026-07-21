@@ -4,6 +4,52 @@ A running log of data-quality quirks, gotchas, and decisions made during the pro
 
 ---
 
+## Candidate features (future — Phase 6.2 refinement backlog)
+
+**Phase:** 6.2 — feature ideas, not yet built
+**Status:** Open (backlog)
+
+Brainstormed additional delay drivers, tiered by ROI-vs-effort and leakage-safety. Real-world delay is dominated by **congestion** and **knock-on propagation**, so the free schedule-derived proxies (Tier 1) are the priority.
+
+**Tier 1 — derivable from existing data, free, guaranteed leakage-safe (highest priority):**
+- **Airport congestion at the scheduled hour** — count of Tunisair flights scheduled to depart/arrive from the same airport in the same hour (or 15-min) window; proxy for gate/runway/ground-crew contention.
+- **Turnaround slack** — gap between a tail's previous-leg `STA` and its next `STD`; tight turnarounds are the main propagation mechanism (partners the Phase 2.4 cascade feature).
+- **Leg-of-day sequence** — is this the tail's 1st/3rd/6th flight of the day (delay accumulates down the chain).
+- **System load** — total flights that day; hub load at TUN specifically.
+- **Aircraft type + wet-lease flag** — see the fleet-swap note below.
+
+**Tier 2 — cheap external joins, plausible value:**
+- **Ramadan flag** — Tunisia-specific, likely high value; moving 30-day window not captured by month/holiday; derivable from the hijri/`holidays` machinery already added.
+- **School-holiday calendars** (Tunisian + French — France is a large share of routes) — leisure-demand surges.
+- **Departure-airport weather** — real but partly already encoded in season/hour (see the weather note; mind the arrival-forecast leakage trap).
+- **Aircraft age** — registration → delivery date; older frames → more mechanical delay.
+- **Airport structural attributes** — slot-controlled/curfew (e.g. Orly), runway count, hub vs spoke.
+
+**Tier 3 — real but low practical ROI here:**
+- **French ATC strikes** — the one worth a look (heavy France exposure); messy data, effectively a forecast at departure time.
+- **Economic/political/demand shifts, airport upgrades over time, crew flu/sickness** — slow-moving and largely already absorbed by season/year; collide with the year-extrapolation risk; better surfaced via Phase 6.1 residual analysis (e.g. residuals by airport over time) than engineered explicitly.
+
+---
+
+## Aircraft-route assignments swap heavily over time (fleet re-assignment / drift)
+
+**Phase:** 2.4 / 6.2 — feature-engineering note
+**Status:** Open (feature ideas for later; does NOT block the planned cascade feature)
+
+Investigated whether the aircraft serving a route is stable across the 2016–2018 horizon (raised because route↔aircraft coupling and mid-horizon equipment upgrades could shift a route's delay behavior). Measured on train+test combined (117,166 rows; 135 airports, 761 routes, 70 tail IDs):
+
+- **Swaps are the norm.** On busy routes (≥200 flights): the dominant *tail* changed year-to-year on **96%** of routes (expected — tails rotate constantly), and the dominant aircraft *type* changed on **52%** (real re-fleeting, e.g. `AMS->TUN` ran 737→737→A320, `BEG->TUN` 737→A320→A320).
+- The literal "same physical aircraft relabeled/upgraded" case is tiny: only **3 of 66** physical tails ever change their type code.
+
+**Implications:**
+1. **The Phase 2.4 cascade feature is safe.** It is keyed on the physical tail (`AC`) and follows that plane's own prior-leg delay regardless of route, so route-level equipment swaps do not corrupt it.
+2. **Concept drift:** route-level equipment changes mid-horizon are a further argument *for* the chronological train/validation split (Phase 2.5) over a random one — a time split tests robustness to this drift instead of leaking future equipment mixes into training.
+3. **Two cheap candidate features (parse-for-free — `AC` already embeds the type, e.g. `TU 320IMW` → type `320`, tail `IMW`):**
+   - **Aircraft type** (24 values, more stable/generalizable than the 70 tails; 44% of routes are single-type).
+   - **Wet-lease / ACMI flag** — the two-letter-prefixed types (`5K`, `GJ`, `UG`, `D4`, `X9`, …) are subcontracted operations by other carriers and plausibly carry a different delay profile than Tunisair mainline.
+
+---
+
 ## A few flights have corrupted STA dates (implausible durations)
 
 **Phase:** 1.5 — Temporal investigation

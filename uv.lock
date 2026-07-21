@@ -205,6 +205,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "airportsdata" },
+    { name = "holidays" },
     { name = "plotly" },
     { name = "scikit-learn" },
     { name = "seaborn" },
@@ -219,6 +220,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "airportsdata", specifier = ">=20260315" },
+    { name = "holidays", specifier = ">=0.101" },
     { name = "plotly", specifier = ">=6.8.0" },
     { name = "scikit-learn", specifier = ">=1.9.0" },
     { name = "seaborn", specifier = ">=0.13.2" },
@@ -279,6 +281,18 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/34/3b/214dcc19ee31d3d38fb5ad2755c11ef0514e5dc300bbaf41c0b69f393799/fonttools-4.63.0-cp314-cp314t-win32.whl", hash = "sha256:948428a275741f0b64b113c955425a953314f4b9ab9997f73a72c83e68e569c8", size = 2359326, upload-time = "2026-05-14T12:04:24.22Z" },
     { url = "https://files.pythonhosted.org/packages/dd/1e/3ff1a9b523058c2eeb6a9d50f5574e2a738200d0d94107d5bc4105e8da3f/fonttools-4.63.0-cp314-cp314t-win_amd64.whl", hash = "sha256:6d4741eb179121cab9eea4cb2393d24492373a260d7945006358c08cfbf45419", size = 2425829, upload-time = "2026-05-14T12:04:26.829Z" },
     { url = "https://files.pythonhosted.org/packages/2c/47/c99d5268f354002ce80f8d029cd9d7d872969da1de8b93d32de4dc56d6f4/fonttools-4.63.0-py3-none-any.whl", hash = "sha256:445af2eab030a16b9171ea8bdda7ebf7d96bda2df88ee182a464252f6e05e20d", size = 1164562, upload-time = "2026-05-14T12:04:29.092Z" },
+]
+
+[[package]]
+name = "holidays"
+version = "0.101"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "python-dateutil" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a6/9c/1b4fbc0757e110704b55d81890b0f7e00d98d6d2e9900b96ba0f3abd4f52/holidays-0.101.tar.gz", hash = "sha256:fbaa802d66e5d24877359ae68c46d00a73437162d3e9a17466fe6cfcce123c3a", size = 956805, upload-time = "2026-07-20T20:44:44.504Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/db/73/f004ae0e18a87408cef57191eac8d742c2906d9a57316f0c8f69c663093f/holidays-0.101-py3-none-any.whl", hash = "sha256:be1d5bb0b662d709da08dcdfa9b42feb678312df2a5d6280421da71349e4757f", size = 1542496, upload-time = "2026-07-20T20:44:42.079Z" },
 ]
 
 [[package]]
