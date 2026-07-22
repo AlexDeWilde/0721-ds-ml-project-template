@@ -4,6 +4,24 @@ A running log of data-quality quirks, gotchas, and decisions made during the pro
 
 ---
 
+## Test-set cascade feature is a placeholder — MUST recompute before Zindi submission
+
+**Phase:** 2.4 / 6.3 — feature engineering vs. final evaluation
+**Status:** Open (blocks Phase 6.3 submission, does NOT affect current validation scores)
+
+On `train`, the cascade columns (`prev_leg_delay`, `hours_since_prior_leg`, `has_prior_leg`) are real. On **`test.csv` they are neutral placeholders** — every row gets the median delay / median gap and `has_prior_leg = 0` (see the `TODO` in the Phase 2.4 fill cell). A test flight's true prior leg may be unlabeled, so the real cascade was deferred.
+
+**Impact:** `prev_leg_delay` is the **single most important feature** in the selected model. Predicting on `test.csv` as-is would feed constant placeholders for that feature and produce poor Zindi scores. The held-out **validation** RMSE (109.53 min) is unaffected — the validation split is carved from `train`, where the cascade is fully populated.
+
+**To do before Phase 6.3:** recompute the test cascade from combined train+test history per aircraft, ordered by `STD` (a test flight's prior leg may itself be a test flight — chain the predictions, or use known prior `target`s where available). Verify no leakage (prior leg must depart before the current one).
+
+## Baseline is 141.95 min (held-out), not ~117
+
+**Phase:** 3.1 — Baseline
+**Status:** Resolved (figure corrected)
+
+`milestone_1.md` quotes a baseline RMSE of ~117 min. That was the **standard deviation of the whole `target`** — i.e. the RMSE a constant-mean predictor would get *on the full dataset*, not a held-out score. The honest baseline, measured on the chronological **validation split**, is **141.95 min** (constant mean) / **139.44 min** (per-route mean). Use 141.95 as "the number to beat" in the deck and any write-up; the tuned Random Forest scores 109.53 (−22.8%).
+
 ## Candidate features (future — Phase 6.2 refinement backlog)
 
 **Phase:** 6.2 — feature ideas, not yet built
@@ -53,7 +71,7 @@ Investigated whether the aircraft serving a route is stable across the 2016–20
 ## A few flights have corrupted STA dates (implausible durations)
 
 **Phase:** 1.5 — Temporal investigation
-**Status:** Open (to handle before Phase 2.3)
+**Status:** Deferred (never blocked modeling; only matters if a duration feature is added in Phase 6.2)
 
 Computing naive flight duration as `STA - STD` gave a sensible median (~2.3h) but a max of ~11,992 hours (≈500 days). Splitting by same-timezone vs. cross-timezone flights showed the extreme values sit in the **same-timezone** group (offset = 0), so they cannot be a timezone artifact — they're date-entry errors in a small number of `STA` values (the arrival's date component is wrong). Cross-timezone durations are clean and tight (max ~8.9h), because Tunisair's network spans only small offsets (~0–2h).
 

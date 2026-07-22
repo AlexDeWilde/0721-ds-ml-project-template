@@ -2,11 +2,12 @@
 
 > **Purpose:** This document is a complete handoff of a Claude Code working session on `04_flight_delay_eda_modeling.ipynb`. It captures what was prompted, what was decided, what was built, the current project-board state, and exactly what to do next. Pull this repo, read this file top to bottom, and you can continue seamlessly in your own VS Code + Claude session.
 
-**Session date:** 2026-07-21
-**Branch:** `ml_project_sulu`
-**Driven by:** Sulu (sulugambari)
-**Continuing:** Alex (AlexDeWilde)
+**Last updated:** 2026-07-22 (modeling + Phase 5.1 slide-draft session)
+**Branch:** `adw0721` (Alex; earlier EDA/feature work was on `ml_project_sulu`)
+**Driven by:** Alex (AlexDeWilde)
+**Continuing:** colleague picking up next
 **Notebook:** [04_flight_delay_eda_modeling.ipynb](04_flight_delay_eda_modeling.ipynb)
+**Slide deck (Phase 5.1):** [slides_draft.md](slides_draft.md) (the outline/source of truth) + rendered `Tunisair Flight Delay Deck.html`
 
 ---
 
@@ -87,17 +88,21 @@ To get an item's ID: `gh project item-list 4 --owner AlexDeWilde --format json` 
 | 8 | 2.1 Define leakage-safe feature set | ✅ Done |
 | 9 | 2.2 Engineer temporal features | ✅ Done |
 | 10 | 2.3 Engineer route/airport features | ✅ Done |
-| **11** | **2.4 Cascading-delay feature** | 🟡 **In Progress** |
-| 12 | 2.5 Chronological train/test split | ⚪ Backlog |
-| 13 | 3.1 Baseline model + RMSE | ⚪ Backlog |
-| 14 | 3.2 Document business framing | ⚪ Backlog |
-| 15–19 | 4.1–4.5 Model iteration (LinReg, RF, GBM/XGB, tuning, compare) | ⚪ Backlog |
-| 20 | 5.1 Draft slide deck | ⚪ Backlog |
-| 21–23 | 6.1–6.3 Error analysis, iterate, final eval | ⚪ Backlog |
+| 11 | 2.4 Cascading-delay feature | ✅ Done |
+| 12 | 2.5 Chronological train/test split | ✅ Done |
+| 13 | 3.1 Baseline model + RMSE | ✅ Done |
+| 14 | 3.2 Document business framing | ✅ Done |
+| 15–19 | 4.1–4.5 Model iteration (LinReg, RF, GBM/XGB, tuning, compare) | ✅ Done |
+| 20 | 5.1 Draft slide deck | ✅ Done (see `slides_draft.md`) |
+| **21** | **6.1 Residual/error analysis** | ⚪ **Backlog — next up** |
+| 22 | 6.2 Iterate features/model | ⚪ Backlog |
+| 23 | 6.3 Final evaluation on Zindi test set | ⚪ Backlog |
 | 24–27 | 7.1–7.4 Finalize notebook/slides/data-product slide/rehearse | ⚪ Backlog |
 | 28–31 | 8.1–8.4 Streamlit delay-alert web app | ⚪ Backlog |
 
-**Milestone 1 (baseline) target: Day 2, 12:00.** All of Phase 1 (EDA) is complete.
+**Milestone 1 (baseline, Day 2 12:00): DONE.** **Milestone 2 (slides draft, Day 3 12:00): DONE** (`slides_draft.md`). **Milestone 3 (model + error analysis, Day 3 16:00):** model selected; error analysis (Phase 6) still outstanding.
+
+> **Board note:** update board items #11–20 to Done to match the notebook (the CLI snippets above still apply).
 
 ---
 
@@ -161,6 +166,34 @@ Four cells, all built and verified (values checked in the venv), on **both** tra
 
 **Scheduled-duration feature was deliberately skipped** (would need `STA` cleaned first) — logged as a Phase 6.2 candidate in ISSUES.md; `gc_distance_km` already proxies flight length.
 
+### Phase 2.4 — Cascading-delay feature ✅ DONE
+Per aircraft (`AC`), the **prior leg's** delay as a feature, built on both train and test. Columns: `prev_leg_delay`, `hours_since_prior_leg`, `has_prior_leg`. Sorted by `AC` then `STD`; first-leg rows (68 in train) get a neutral fill and `has_prior_leg=0`.
+- **Leakage guard verified:** 0 rows where the prior leg departs at/after the current one. Using a strictly-earlier leg's `target` is legitimate (known before the current departure).
+- **Signal:** `corr(prev_leg_delay, target) = 0.373` on real prior legs; median gap between legs 3.58 h. This turns out to be the single strongest predictor in every model.
+
+### Phase 2.5 — Chronological split ✅ DONE
+Time-based 80/20 split (NOT random): cutoff `2018-06-01`. `train_split` = 86,266 rows (2016-01-01 → 2018-06-01), `valid_split` = 21,567 rows (2018-06-01 → 2018-12-31); verified train fully precedes validation. `test.csv` (9,333 rows, no `target`) reserved for Zindi submission only.
+
+### Phase 3.1 / 3.2 — Baseline + framing ✅ DONE
+- **Baseline (constant mean, 44.9 min):** held-out validation **RMSE 141.95 min**. Per-route-mean baseline: **139.44 min**. This is the number to beat. *(Note: the earlier ~117 figure was the whole-dataset std, not a held-out score — superseded by 141.95.)*
+- Phase 3.2 documents stakeholder / prediction / metric (RMSE) / regression framing in a markdown cell.
+
+### Phase 4.1–4.5 — Modeling ✅ DONE
+Time-aware CV + held-out validation RMSE:
+| Model | Held-out RMSE (min) | vs baseline |
+|---|---|---|
+| **Random Forest (tuned) — SELECTED** | **109.53** | **−22.8%** |
+| Random Forest (default) | 110.69 | −22.0% |
+| XGBoost (tuned) | 111.10 | −21.7% |
+| XGBoost (default) | 112.39 | −20.8% |
+| Linear Regression | 131.96 | −7.0% |
+| Baseline (per-route / constant) | 139.44 / 141.95 | — |
+- Features frequency-encode `route`/`country_pair` for the tree models. Top features everywhere: `prev_leg_delay`, `hours_since_prior_leg`, `gc_distance_km`; XGB also leans on `is_domestic`.
+- **Selected model: tuned Random Forest** (`max_depth=16, max_features=0.5, min_samples_leaf=3, n_estimators=391`), Phase 4.5 leaderboard + bar chart in the notebook.
+
+### Phase 5.1 — Slide draft ✅ DONE
+Stakeholder deck outline lives in [slides_draft.md](slides_draft.md) (verified against notebook outputs), rendered to `Tunisair Flight Delay Deck.html`. Slides for error analysis (11) and the data product (13) are intentional placeholders pending Phase 6 / Phase 8.
+
 ---
 
 ## 6. Data-quality issues log
@@ -174,18 +207,15 @@ All quirks are tracked in [ISSUES.md](ISSUES.md). Current entries (newest first)
 
 ## 7. What's next (pick up here)
 
-**Immediate:** the notebook's Phase 1.7 cells (and anything after the reorg) need a fresh **Run All** in VS Code to regenerate outputs/charts. Confirm the charts match the written takeaways.
+Modeling and the slide draft are done. The next block of work is **Phase 6 (error analysis)** and then the **data product (Phase 8)**.
 
-**Current board item — #11 (Phase 2.4, In Progress):** Cascading-delay feature — per aircraft (`AC`), the prior leg's delay. **Most leakage-sensitive feature in the project:** must use only *strictly prior* legs of each tail (order by `STD`), never the current or future leg. Using a prior leg's `target` as a feature is legitimate (it's historically known before the current departure), but the design must be signed off before coding. Open design questions: same-day gating of the cascade, missing-value handling for a tail's first leg, and how to handle the Zindi test set (its prior legs may be unlabeled — likely deferred to submission time).
-- **#12 (2.5)** Chronological train/validation split by a `DATOP` date cutoff (NOT random). Reserve `test.csv` for Zindi submission only.
-- **#13 (3.1)** Baseline model (e.g. mean/per-route median delay) + RMSE → the number to beat (Milestone 1).
-- **#14 (3.2)** Document business framing (already drafted in the Phase 3.2 notebook cell).
-- **#12 (2.5)** Chronological train/validation split by a `DATOP` date cutoff (NOT random). Reserve `test.csv` for Zindi submission only.
-- **#13 (3.1)** Baseline model (e.g. mean/per-route median delay) + RMSE → the number to beat (Milestone 1).
-- **#14 (3.2)** Document business framing (already drafted in the Phase 3.2 notebook cell).
-- **#15–19 (Phase 4)** LinReg → Random Forest → Gradient Boosting/XGBoost, each with cross-validation (use `TimeSeriesSplit` to respect time), then tune the best, then compare/select.
-- **#21–23 (Phase 6)** Error analysis (residuals by route/season/aircraft/magnitude), iterate, final eval on held-out set + save model with `joblib`.
-- **Phases 5, 7, 8** — slide deck, deliverables, and the Streamlit delay-alert web app (data-product MVP).
+- **#21 (6.1) — Error analysis (next up).** Residuals of the **selected tuned Random Forest** on the validation split, broken down by route / season / hour / aircraft / delay magnitude. Expect the long tail (rare severe delays) to dominate RMSE — quantify where the model is weakest.
+- **#22 (6.2) — Iterate** on features/model from what 6.1 reveals. Candidate features are catalogued in [ISSUES.md](ISSUES.md) (Tier 1: airport congestion, turnaround slack, leg-of-day sequence, aircraft type / wet-lease flag).
+- **#23 (6.3) — Final evaluation.** Refit the selected model on all labelled data, predict on the reserved `test.csv` (9,333 rows), and produce a Zindi submission. Save the fitted model with `joblib`.
+- **Phase 7** — finalize the notebook (PEP 8, reproducible), export the deck to PDF, add the data-product slide, rehearse the 10-min talk.
+- **Phase 8** — build the Streamlit delay-alert web app (data-product MVP): input a flight → predicted delay + risk category, with an alternative-flight suggestion.
+
+**Once error analysis lands, refresh `slides_draft.md`:** fill Slide 11 (error analysis) and Slide 13 (data product), and refresh the results table if 6.2 changes the numbers.
 
 ---
 
@@ -219,6 +249,14 @@ What Sulu prompted (paraphrased) and what was done, in order:
 15. **"Sync the board to current statuses."** → Verified #1–7 Done, #8 In Progress, set #9 Ready.
 16. **"Create this handoff file."** → This document.
 
+### Session 2 (2026-07-22, Alex — branch `adw0721`)
+
+17. **Ran the notebook end-to-end and continued Phase 2.4 → 5.1.** Built the cascading-delay feature (with verified leakage guard), the chronological split, the baseline, three models, hyperparameter tuning, and model selection (tuned Random Forest, 109.53 min RMSE).
+18. **"What do the Milestone-2 slides need to present?"** → Derived expectations from `01_assignment.md` and produced [slides_draft.md](slides_draft.md) with placeholders for un-built work.
+19. **"Verify against the notebook and update the draft."** → Repeatedly re-checked notebook outputs and synced `slides_draft.md` as Phases 2.4–4.5 completed; corrected the baseline figure (141.95, not the old ~117 std).
+20. **Rendered the deck** to `Tunisair Flight Delay Deck.html`.
+21. **"Update handoff and issues before I commit."** → This update (board status, Phase 2.4–5.1 build notes, next steps).
+
 ---
 
-*Generated at the end of the session so work can continue in a fresh Claude Code chat. When you resume, start by reading this file, then run the notebook top-to-bottom, then continue with board item #8.*
+*When you resume: read this file, run the notebook top-to-bottom to regenerate outputs, sync the board (#11–20 → Done), then start **Phase 6.1 error analysis** on the selected tuned Random Forest.*
