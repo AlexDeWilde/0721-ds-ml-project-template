@@ -11,11 +11,13 @@
 > **Target length:** ~12–14 slides for a 10-minute talk. Keep one idea per slide, minimal text, visuals over tables.
 >
 > ---
-> **Verification status (2026-07-22, updated):** All numbers below were checked against the *run* notebook `04_flight_delay_eda_modeling.ipynb`.
+> **This file IS the Phase 5.1 deliverable** ("Draft stakeholder slide deck") — the notebook's Phase 5.1 cell notes the deck is tracked here, outside the notebook.
+>
+> **Verification status (2026-07-22, latest):** All numbers below were checked against the *run* notebook `04_flight_delay_eda_modeling.ipynb`.
 > - **EDA (Phase 1) — complete & verified.** Target: mean **48.7 min**, median **14 min**, std **117 min**, max **3451 min**; 0% missing; 107,833 flights.
-> - **Feature engineering — now complete through Phase 2.5.** Temporal (2.2), route/airport (2.3), **cascading-delay (2.4)**, and the **chronological 80/20 split (2.5)** are all built and verified.
-> - **Baseline (3.1) + three models (4.1–4.3) — DONE, with real held-out results.** Best model so far: **Random Forest, 110.69 min RMSE** vs a constant-mean baseline of **141.95 min**.
-> - **Still NOT started:** hyperparameter tuning (4.4), formal model selection (4.5), **error analysis (Phase 6)**, and the **data product / Streamlit app (Phase 8)**. Slides 11 and 13 remain placeholders.
+> - **Feature engineering — complete through Phase 2.5.** Temporal (2.2), route/airport (2.3), **cascading-delay (2.4)**, and the **chronological 80/20 split (2.5)** all built and verified.
+> - **Modeling — now COMPLETE (Phases 3.1–4.5).** Baseline, three algorithms, hyperparameter tuning, and formal selection all done. **Winner: tuned Random Forest — held-out RMSE 109.53 min, 22.8% better than the 141.95-min baseline.**
+> - **Still NOT started:** **error analysis (Phase 6.1)**, iteration (6.2), final Zindi-test evaluation (6.3), and the **data product / Streamlit app (Phase 8)**. Slides 11 and 13 remain placeholders.
 > - **Note on the old ~117 baseline:** earlier docs (`milestone_1.md`) quoted RMSE ~117 — that was the *whole-dataset* standard deviation. The real baseline on the *held-out chronological validation set* is **141.95 min**; use that figure going forward.
 
 ---
@@ -73,22 +75,23 @@ The strongest, most intuitive delay drivers we found:
 ## Slide 9 — How we built a better model ✅ *(verified)*
 - Engineered features from schedule/route/aircraft — **all leakage-safe** (only pre-departure info): departure hour/day/month, holiday flag; route distance, timezone difference, domestic-vs-international; and a per-aircraft **cascading-delay** signal (how late the *same plane's previous flight* was).
 - **Leakage guardrail on the cascade feature verified:** 0 flights use a later leg to predict an earlier one.
-- Tested **three algorithms** with time-aware cross-validation: Linear Regression, Random Forest, XGBoost.
+- Tested **three algorithms** with time-aware cross-validation (Linear Regression, Random Forest, XGBoost), then **tuned** the front-runners and selected the best.
 - *Visual suggestion:* the feature-importance chart — it makes the headline (Slide 10a) land.
 
-## Slide 10 — Results: we beat the baseline ✅ *(verified)*
+## Slide 10 — Results: we beat the baseline ✅ *(verified — Phase 4 complete)*
 Held-out validation RMSE (lower is better):
 
 | Model | RMSE (min) | vs baseline |
 |---|---|---|
 | Baseline (constant mean) | 141.95 | — |
-| Baseline (per-route mean) | 139.44 | −2.5 |
-| Linear Regression | 131.96 | −10 |
-| **Random Forest (best)** | **110.69** | **−31.3 (~22%)** |
-| XGBoost | 112.39 | −29.6 |
-- **Headline:** our best model (Random Forest) cuts prediction error by roughly **22%** versus guessing the average.
-- *Visual suggestion:* horizontal bar chart of the five RMSE values.
-- ⛳ `[PLACEHOLDER: numbers may improve after hyperparameter tuning (Phase 4.4) and formal model selection (4.5), which aren't done yet — refresh this table before the final deck.]`
+| Baseline (per-route mean) | 139.44 | −1.8% |
+| Linear Regression | 131.96 | −7.0% |
+| XGBoost (tuned) | 111.10 | −21.7% |
+| Random Forest (default) | 110.69 | −22.0% |
+| **Random Forest (tuned) — selected** | **109.53** | **−22.8%** |
+- **Headline:** our chosen model (tuned Random Forest) cuts prediction error by roughly **23%** versus guessing the average (109.53 vs 141.95 min).
+- Tree-based models clearly beat linear; tuning added a further ~1 min over the default RF.
+- *Visual suggestion:* horizontal bar chart of the RMSE values (the notebook produces one in Phase 4.5).
 
 ## Slide 10a — The single biggest driver: knock-on delays ✅ *(verified — strong story slide)*
 - Across every model, **the strongest predictor of a flight's delay is how late the same aircraft's previous flight was** (`prev_leg_delay`): correlation 0.37 with delay, and the #1 feature in both Linear Regression and Random Forest.
@@ -103,7 +106,7 @@ Held-out validation RMSE (lower is better):
 - Messages we can now stand behind (EDA **and** model):
   - **Protect early-leg punctuality.** The prior leg's delay is the #1 driver — an on-time morning keeps the whole day's chain on time. Build recovery buffers into aircraft rotations.
   - Focus operational attention on **afternoon departures, summer months, and the high-delay routes** (Algiers, Orly, Marseille).
-  - A Random-Forest model predicts delay ~22% more accurately than the status quo — usable for advance planning.
+  - A tuned Random-Forest model predicts delay ~23% more accurately than the status quo — usable for advance planning.
 - ⛳ `[PLACEHOLDER: sharpen with error-analysis findings (where the model is weakest) once Phase 6 is done.]`
 
 ## Slide 13 — Data product idea (required deliverable) 🟡
@@ -121,14 +124,14 @@ Held-out validation RMSE (lower is better):
 
 ## What's still missing before this becomes the *final* deck
 
-Confirmed against the run notebook (2026-07-22). The draft is now well ahead of the Milestone-2 bar — EDA, baseline, and three trained models are all real. Remaining gaps to fill for Milestone 4:
+Confirmed against the run notebook (2026-07-22). The draft is well ahead of the Milestone-2 bar — EDA, baseline, and a fully tuned/selected model are all real. Remaining gaps to fill for Milestone 4:
 
-1. **Hyperparameter tuning + formal model selection** (Slides 9–10) — Phase 4.4/4.5 are still empty headers; the current "best = Random Forest" is from untuned models, so RMSEs may improve.
-2. **Error analysis** (Slide 11) — Phase 6 not started; where does the model fail (which routes/seasons/delay magnitudes)? Tied to Milestone 3.
+1. **Error analysis** (Slide 11) — Phase 6.1 not started; where does the model fail (which routes/seasons/delay magnitudes)? Tied to Milestone 3.
+2. **Final Zindi-test evaluation** (Phase 6.3) — the selected model still needs to be scored/submitted on the reserved `test.csv` (9,333 rows).
 3. **Data-product specifics** (Slide 13) — the Streamlit delay-alert app (Phase 8) isn't built; needs a mockup/screenshot and a firm MVP scope.
-4. **Final visuals** — export the actual charts from the notebook as images: EDA plots (Phase 1.7, cells 46/49/52/55/58) for Slides 6–7, feature-importance for Slide 10a, and an RMSE bar chart for Slide 10.
+4. **Final visuals** — export the actual charts from the notebook as images: EDA plots (Phase 1.7, cells 46/49/52/55/58) for Slides 6–7, feature-importance for Slide 10a, and the RMSE leaderboard bar chart (Phase 4.5, cell 135) for Slide 10.
 
 ## Notes / assumptions
-- All EDA, baseline, and model figures verified directly from notebook outputs (cells 97/99/109/117/123). Only error-analysis and data-product content remains un-computed.
-- Model results are from **untuned** models on a single chronological split; treat as strong-but-preliminary and refresh after Phase 4.4/4.5.
-- Board/handoff show error analysis (Milestone 3) downstream of this draft, so those placeholders are the expected state at Milestone 2, not a shortfall.
+- All EDA, baseline, and model figures verified directly from notebook outputs (cells 97/99/133/137). Modeling is complete through selection; only error-analysis and data-product content remains un-computed.
+- Selected model (tuned Random Forest, 109.53 min) is measured on a single chronological validation split; the Phase 6.3 Zindi-test score is still pending.
+- Board/handoff show error analysis (Milestone 3) downstream of this draft, so those placeholders are the expected state, not a shortfall.
