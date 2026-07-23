@@ -11,13 +11,14 @@
 > **Target length:** ~12–14 slides for a 10-minute talk. Keep one idea per slide, minimal text, visuals over tables.
 >
 > ---
-> **This file IS the Phase 5.1 deliverable** ("Draft stakeholder slide deck") — the notebook's Phase 5.1 cell notes the deck is tracked here, outside the notebook.
+> **This file started as the Phase 5.1 deliverable** ("Draft stakeholder slide deck") and has since been **extended through Phase 6** (error analysis, feature iteration, two-track final evaluation) as part of Phase 7.2 — it is now the near-final content, pending the data-product slide and PDF render.
 >
 > **Verification status (2026-07-22, latest):** All numbers below were checked against the *run* notebook `04_flight_delay_eda_modeling.ipynb`.
 > - **EDA (Phase 1) — complete & verified.** Target: mean **48.7 min**, median **14 min**, std **117 min**, max **3451 min**; 0% missing; 107,833 flights.
 > - **Feature engineering — complete through Phase 2.5.** Temporal (2.2), route/airport (2.3), **cascading-delay (2.4)**, and the **chronological 80/20 split (2.5)** all built and verified.
-> - **Modeling — now COMPLETE (Phases 3.1–4.5).** Baseline, three algorithms, hyperparameter tuning, and formal selection all done. **Winner: tuned Random Forest — held-out RMSE 109.53 min, 22.8% better than the 141.95-min baseline.**
-> - **Still NOT started:** **error analysis (Phase 6.1)**, iteration (6.2), final Zindi-test evaluation (6.3), and the **data product / Streamlit app (Phase 8)**. Slides 11 and 13 remain placeholders.
+> - **Modeling & error analysis — now COMPLETE (Phases 3.1–6.3).** Baseline, three algorithms, tuning, selection, error analysis, feature iteration, and the two-track final evaluation are all done. **Selected operational model: Random Forest + engineered features — held-out RMSE 108.64 min, 23.5% better than the 141.95-min baseline.**
+> - **Two-track result (key, Phase 6.3):** the operational model's top feature is `prev_leg_delay` (how late the same aircraft's previous flight was) — known in a real ops room. **Zindi hides whole test months**, so that feature is unavailable there; a **submittable model without it scores 130.92 min** and produces `zindi_submission.csv`. Both are honest — the deck leads with 108.64 *and its assumption*.
+> - **Still NOT started:** the **data product / Streamlit app (Phase 8)**. Slide 13 remains a placeholder.
 > - **Note on the old ~117 baseline:** earlier docs (`milestone_1.md`) quoted RMSE ~117 — that was the *whole-dataset* standard deviation. The real baseline on the *held-out chronological validation set* is **141.95 min**; use that figure going forward.
 
 ---
@@ -78,7 +79,7 @@ The strongest, most intuitive delay drivers we found:
 - Tested **three algorithms** with time-aware cross-validation (Linear Regression, Random Forest, XGBoost), then **tuned** the front-runners and selected the best.
 - *Visual suggestion:* the feature-importance chart — it makes the headline (Slide 10a) land.
 
-## Slide 10 — Results: we beat the baseline ✅ *(verified — Phase 4 complete)*
+## Slide 10 — Results: we beat the baseline ✅ *(verified — Phases 4 & 6 complete)*
 Held-out validation RMSE (lower is better):
 
 | Model | RMSE (min) | vs baseline |
@@ -87,36 +88,73 @@ Held-out validation RMSE (lower is better):
 | Baseline (per-route mean) | 139.44 | −1.8% |
 | Linear Regression | 131.96 | −7.0% |
 | XGBoost (tuned) | 111.10 | −21.7% |
-| Random Forest (default) | 110.69 | −22.0% |
-| **Random Forest (tuned) — selected** | **109.53** | **−22.8%** |
-- **Headline:** our chosen model (tuned Random Forest) cuts prediction error by roughly **23%** versus guessing the average (109.53 vs 141.95 min).
-- Tree-based models clearly beat linear; tuning added a further ~1 min over the default RF.
+| Random Forest (tuned) | 109.53 | −22.8% |
+| **Random Forest + engineered features — selected** | **108.64** | **−23.5%** |
+- **Headline:** our chosen model cuts prediction error by roughly **24%** versus guessing the average (108.64 vs 141.95 min).
+- Tree-based models clearly beat linear; tuning plus a second round of features (airport congestion, leg-of-day, aircraft type) took us from 109.53 → 108.64.
 - *Visual suggestion:* horizontal bar chart of the RMSE values (the notebook produces one in Phase 4.5).
 
 ## Slide 10a — The single biggest driver: knock-on delays ✅ *(verified — strong story slide)*
-- Across every model, **the strongest predictor of a flight's delay is how late the same aircraft's previous flight was** (`prev_leg_delay`): correlation 0.37 with delay, and the #1 feature in both Linear Regression and Random Forest.
+- Across every model, **the strongest predictor of a flight's delay is how late the same aircraft's previous flight was** (`prev_leg_delay`): the #1 feature by far (~38% of the Random Forest's importance).
 - Plain message: **delays cascade through the day along each aircraft's chain of flights.**
 - Domestic-vs-international and route distance also matter.
 - *This is the most stakeholder-friendly insight in the deck — consider leading with it.*
 
-## Slide 11 — Where the model struggles (error analysis) ⛳
-- ⛳ `[PLACEHOLDER: error-analysis findings — residuals by route / season / aircraft / delay magnitude. This is Milestone 3 work (Phase 6), not expected complete for the draft. Insert placeholder chart + "to come".]`
+## Slide 10b — The honesty slide: what a competition can't see ✅ *(NEW — Phase 6.3, memorable point)*
+- Our best signal, `prev_leg_delay`, is worth **~22 RMSE minutes** on its own — dropping it takes the model from 108.64 to **130.92 min**.
+- **A real airline knows it** (the previous flight has already landed before the next departs), so 108.64 is our true operational capability.
+- **The Zindi competition hides entire test months**, so within them that signal is unavailable — hence a separate, honest *submittable* model at 130.92 (`zindi_submission.csv`).
+- Plain message: *"Our model is so good at reading delay already flowing through the system that its top clue is one a real operations team has — but a leaderboard deliberately hides."* Not a weakness — a sign the model learned the right thing.
 
-## Slide 12 — Recommendations 🟡 *(model-backed, pending error analysis)*
-- Messages we can now stand behind (EDA **and** model):
+## Slide 11 — Where the model struggles (error analysis) ✅ *(verified — Phase 6.1 complete)*
+- **The model plays it safe on extremes.** It slightly *over*-predicts on-time flights and heavily *under*-predicts severe delays: for flights delayed 180+ min (real avg ~382 min) it predicts only ~237 — missing by ~145 min. Those ~2,000 severe flights drive most of the error.
+- **Worst routes:** infrequent long-haul routes (Abidjan, Dakar, Bamako, Paris-CDG, Amsterdam) — too few examples to learn from.
+- **Worst aircraft:** the **wet-lease / subcontracted planes** run later than the mainline fleet the model expects.
+- **Season:** error is highest in **August and December** (peak travel).
+- Plain message: the model is reliable for everyday delays; its misses cluster on **rare, severe disruptions** whose causes (weather, ATC) aren't in the data.
+- *Visual suggestion:* the "mean residual by delay magnitude" bar chart from the notebook (Phase 6.1).
+
+## Slide 12 — Recommendations ✅ *(model- and error-analysis-backed)*
+- Messages we can now stand behind (EDA, model, **and** error analysis):
   - **Protect early-leg punctuality.** The prior leg's delay is the #1 driver — an on-time morning keeps the whole day's chain on time. Build recovery buffers into aircraft rotations.
-  - Focus operational attention on **afternoon departures, summer months, and the high-delay routes** (Algiers, Orly, Marseille).
-  - A tuned Random-Forest model predicts delay ~23% more accurately than the status quo — usable for advance planning.
-- ⛳ `[PLACEHOLDER: sharpen with error-analysis findings (where the model is weakest) once Phase 6 is done.]`
+  - Focus operational attention on **afternoon departures, summer months (Aug), and the high-delay routes** (Algiers, Orly, Marseille).
+  - **Add manual oversight for the model's known blind spots:** rare long-haul routes and **wet-lease flights**, where predictions are least reliable — don't let the tool run unchecked there.
+  - Treat the model as a **planning aid for typical delays**, not a guarantee on rare severe ones — its residual error is concentrated in disruptions (weather/ATC) it can't yet see.
+  - A model predicting delay ~24% more accurately than the status quo is usable for advance staffing, gate, and passenger-comms decisions.
 
-## Slide 13 — Data product idea (required deliverable) 🟡
-- Concept: a **delay-alert tool** — enter a flight (or have ops/the app pull the schedule) and get a predicted delay + risk level, before departure.
-- Users: ops planners (staffing/gate decisions) and passengers (via a travel app).
-- Planned MVP in this project: a small **Streamlit** app wrapping the model (Phase 8).
-- ⛳ `[PLACEHOLDER: screenshot / mockup of the app once built; confirm exact scope of the MVP.]`
+## Slide 13 — Data product: "Tunisair Delay-Alert" ✅ *(the required data-product slide)*
 
-## Slide 14 — Future work & close ✅ / 🟡
-- Next feature ideas (from `ISSUES.md`): airport **congestion** at scheduled hour, **turnaround slack**, leg-of-day sequence, Ramadan flag, aircraft type / wet-lease flag, weather.
+**One-liner:** a pre-departure delay-alert tool — pick a flight, get its **predicted delay + risk level before the plane leaves the gate**, and (for passengers) **lower-delay alternative flights** on the same route.
+
+**Who uses it & the decision it supports:**
+- **Ops planners** → advance staffing, gate, and turnaround decisions on flights flagged high-risk.
+- **Passengers** (via a travel app) → set expectations, and see calmer alternatives when rebooking.
+
+**What you put in → what you get out:**
+- *In:* a scheduled flight (route, time, aircraft) — and, for ops, the aircraft's prior-leg status they already track.
+- *Out:* predicted delay in minutes, a **risk badge** (🟢 Low < 15 min · 🟡 Moderate 15–60 · 🔴 High 60+), and a short list of same-route flights with lower expected delay.
+
+```
+┌──────────────────────────────────────────────┐
+│  Tunisair Delay-Alert                          │
+│  Route: TUN → ORY   Date: 2018-08-12  14:30    │
+│  Aircraft: TU 320IMU                           │
+│  ───────────────────────────────────────────  │
+│  Predicted delay:  47 min      🔴 HIGH RISK     │
+│  ───────────────────────────────────────────  │
+│  Calmer alternatives on TUN → ORY:             │
+│    • 08:10 departure   ~12 min   🟢             │
+│    • 11:25 departure   ~21 min   🟡             │
+└──────────────────────────────────────────────┘
+```
+
+**Why it works — and why the product beats the leaderboard:** the tool runs the **operational model (108.64 min)**, which uses the prior-leg delay. A real ops team *has* that data in real time (the previous flight has landed) — so the product delivers the model's full strength, the very signal the Zindi test format hides. *The "hidden feature" from Slide 10b is exactly what makes this product valuable.*
+
+**Scope (honest):** MVP is a **Streamlit demo on the historical dataset** (Phase 8) — a proof of concept, not a live/real-time system. ⛳ `[Add app screenshot once Phase 8 is built.]`
+
+## Slide 14 — Future work & close ✅ *(weather now evidence-backed)*
+- **#1 next lever — weather.** We ran a quick feasibility check with real historical weather (Open-Meteo) at the busiest airports: **adverse weather (gusts/precip) raises the severe-delay rate from ~5% to ~7%** — exactly the errors the model misses today. Worth a full build with airport-level weather (ideally METAR visibility/ceiling).
+- Other candidate features (some already added in Phase 6.2 — congestion, leg-of-day, aircraft type): **turnaround slack**, a **Ramadan** refinement, and richer **wet-lease** handling.
 - Concept drift over 2016–2018 (fleet re-assignment) → validated with a time-based split.
 - Thank you / questions.
 
@@ -124,14 +162,16 @@ Held-out validation RMSE (lower is better):
 
 ## What's still missing before this becomes the *final* deck
 
-Confirmed against the run notebook (2026-07-22). The draft is well ahead of the Milestone-2 bar — EDA, baseline, and a fully tuned/selected model are all real. Remaining gaps to fill for Milestone 4:
+Updated against the run notebook (2026-07-22, after Phase 6). EDA, baseline, a fully tuned/selected model, **error analysis, and the two-track final evaluation are all done**. Remaining gaps for Milestone 4:
 
-1. **Error analysis** (Slide 11) — Phase 6.1 not started; where does the model fail (which routes/seasons/delay magnitudes)? Tied to Milestone 3.
-2. **Final Zindi-test evaluation** (Phase 6.3) — the selected model still needs to be scored/submitted on the reserved `test.csv` (9,333 rows).
-3. **Data-product specifics** (Slide 13) — the Streamlit delay-alert app (Phase 8) isn't built; needs a mockup/screenshot and a firm MVP scope.
-4. **Final visuals** — export the actual charts from the notebook as images: EDA plots (Phase 1.7, cells 46/49/52/55/58) for Slides 6–7, feature-importance for Slide 10a, and the RMSE leaderboard bar chart (Phase 4.5, cell 135) for Slide 10.
+1. ~~Error analysis~~ ✅ done (Slide 11 filled from Phase 6.1).
+2. ~~Final Zindi-test evaluation~~ ✅ done — `zindi_submission.csv` produced (submittable model, 130.92 min); see the two-track story (Slide 10b).
+3. **Data-product specifics** (Slide 13) — the Streamlit delay-alert app (Phase 8) isn't built; needs a mockup/screenshot and a firm MVP scope. The trained model is saved (`models/delay_model.joblib`) ready to wrap.
+4. **Final visuals** — export the actual charts from the notebook as images: EDA plots (Phase 1.7) for Slides 6–7, feature-importance and the RMSE leaderboard bar chart (Phase 4.5) for Slide 10, and the **residual-by-magnitude** chart (Phase 6.1) for Slide 11.
+5. **Render to PDF** — the HTML deck (`Tunisair Flight Delay Deck.html`) predates Phase 6 and must be re-synced with these slides, then exported to PDF for submission.
 
 ## Notes / assumptions
-- All EDA, baseline, and model figures verified directly from notebook outputs (cells 97/99/133/137). Modeling is complete through selection; only error-analysis and data-product content remains un-computed.
-- Selected model (tuned Random Forest, 109.53 min) is measured on a single chronological validation split; the Phase 6.3 Zindi-test score is still pending.
-- Board/handoff show error analysis (Milestone 3) downstream of this draft, so those placeholders are the expected state, not a shortfall.
+- All EDA, baseline, model, and error-analysis figures verified directly from notebook outputs. The only remaining un-built piece is the **data product / Streamlit app (Phase 8)**.
+- **Selected operational model:** Random Forest + engineered features, **108.64 min** held-out RMSE, measured on a single chronological validation split. Its headline number assumes `prev_leg_delay` is available at prediction time (true operationally; not for the Zindi hidden months).
+- **Submittable model** (no `prev_leg_delay`): **130.92 min**, used for the Zindi entry (`zindi_submission.csv`).
+- See `ISSUES.md` for the full record of the two-track decision and the month-block test-set finding.
