@@ -14,13 +14,19 @@ import holidays
 import joblib
 import numpy as np
 import pandas as pd
+from hijridate import Gregorian
 
 _REF = Path(__file__).parent / "reference"
 _MODEL_PATH = Path(__file__).parent.parent / "models" / "app_booking_model.joblib"
 
-RAMADAN = [("2016-06-06", "2016-07-05"), ("2017-05-27", "2017-06-24"),
-           ("2018-05-16", "2018-06-14")]
 AIRPORT_OVERRIDES = {"SXF": {"country": "DE", "lat": 52.3667, "lon": 13.5033, "tz": "Europe/Berlin"}}
+
+
+def is_ramadan(ts):
+    """True if the date falls in Ramadan (Hijri month 9). Works for any year via the
+    Hijri calendar — the training pipeline and the app use this same function."""
+    ts = pd.Timestamp(ts)
+    return Gregorian(ts.year, ts.month, ts.day).to_hijri().month == 9
 
 # Risk bands (minutes of predicted delay). Global delay quantiles are the fallback
 # range when a route has too little history.
@@ -67,11 +73,6 @@ def _haversine_km(lat1, lon1, lat2, lon2):
     return float(2 * r * np.arcsin(np.sqrt(a)))
 
 
-def _is_ramadan(ts):
-    return any(pd.Timestamp(s) <= ts <= pd.Timestamp(e) + pd.Timedelta(days=1)
-               for s, e in RAMADAN)
-
-
 def make_features(dep, arr, date, hour, bundle):
     """Build the model's booking-time feature row from typed inputs."""
     ts = pd.Timestamp(date) + pd.Timedelta(hours=int(hour))
@@ -88,7 +89,7 @@ def make_features(dep, arr, date, hour, bundle):
         "dep_dow": ts.dayofweek,
         "dep_month": ts.month,
         "dep_is_holiday": int(ts.date() in _tn_holidays()),
-        "dep_is_ramadan": int(_is_ramadan(ts)),
+        "dep_is_ramadan": int(is_ramadan(ts)),
         "gc_distance_km": round(dist, 1),
         "is_domestic": domestic,
         "route_freq": bundle["route_freq"].get(route, 0),
