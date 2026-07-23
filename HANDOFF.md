@@ -11,7 +11,27 @@
 
 ---
 
-## ⭐ Latest update — 2026-07-22, Phase 6 complete (Sulu, branch `sulu-phase6-error-analysis`)
+## ⭐ Latest update — 2026-07-23, Phases 7 & 8 complete (Sulu)
+
+**Phase 7 (finalize) and Phase 8 (data product) are DONE and merged to `main`.** Board #24, #26, #28–31 → Done.
+
+**Phase 7 (merged to main):**
+- **7.1** notebook finalized — lint fixes, reproducibility + PEP8/style notes in the Phase 7.1 section.
+- **7.2/7.3** `slides_draft.md` updated with the two-track story, real error analysis, weather evidence, and a fleshed-out data-product slide. *(Slide-deck PDF render is still #25 — pending on the deck author's side.)*
+
+**Phase 8 — Tunisair Delay-Alert Streamlit app (data product MVP), all in `app/`:**
+- `app/streamlit_app.py` (UI) + `app/delay_core.py` (logic) + `app/reference/*.csv` (lookups) + `scripts/build_app_data.py` (rebuilds model/tables) + `models/app_booking_model.joblib` (14 MB, committed).
+- **Booking-time model**: inputs = flight number/route + date; outputs a **risk category** (🟢/🟡/🔴), an honest **typical-delay range**, plain-language advice, and lower-risk **alternative departure times**. Uses only pre-departure info; holdout RMSE ~137 vs ~142 baseline — reliable for the *category*, honest that exact minutes aren't knowable at booking time.
+- Branded UI (white Tunisair logo at `app/assets/logo.png`, red background, white result card, disclaimer + authors).
+- **Run:** `uv sync && uv run streamlit run app/streamlit_app.py`
+
+**⚠️ Open coordination item — slide deck merge:** `slides_draft.md` on `main` already contains the Phase 7 rewrite (two-track story, error analysis, weather, data-product slide). If Alex edited an **older** version of `slides_draft.md`, his changes must be reconciled with the Phase 7 content when merged — pull `main` first, or push his branch and resolve the `slides_draft.md` conflict deliberately so neither side is lost.
+
+**Branches:** `main` is current (`b70318e`). Merged feature branches still exist: `sulu-phase6-error-analysis`, `sulu-phase7-finalize`, `sulu-phase8-streamlit-app` (deletable). This doc/notebook update is on `sulu-phase8-docs`.
+
+---
+
+## Update — 2026-07-22, Phase 6 complete (Sulu, branch `sulu-phase6-error-analysis`)
 
 **Phase 6 (error analysis → iteration → final evaluation) is DONE in the notebook.** Board #21, #22, #23 → Done.
 

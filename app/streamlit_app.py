@@ -51,12 +51,14 @@ def inject_style():
           /* Logo rendered entirely white, in place of the title emoji */
           .app-logo {{ height: 1.5em; vertical-align: -0.35em; margin-right: 0.4rem;
                        filter: brightness(0) invert(1); }}
-          /* Departure-hour slider: white track, blue dot */
-          [data-testid="stSlider"] [role="slider"] {{ background-color: #1d4ed8 !important;
+          /* Departure-hour slider (keyed via key="hour_slider"): white track, blue dot, white labels */
+          .st-key-hour_slider [role="slider"] {{ background-color: #1d4ed8 !important;
              border-color: #1d4ed8 !important; box-shadow: 0 0 0 3px rgba(29,78,216,0.35) !important; }}
-          [data-testid="stSlider"] [data-baseweb="slider"] > div > div,
-          [data-testid="stSlider"] [data-baseweb="slider"] > div > div > div {{
+          .st-key-hour_slider [data-baseweb="slider"] > div > div,
+          .st-key-hour_slider [data-baseweb="slider"] > div > div > div,
+          .st-key-hour_slider [data-baseweb="slider"] > div > div > div > div {{
              background: #ffffff !important; }}
+          .st-key-hour_slider [data-baseweb="slider"] * {{ color: #ffffff !important; }}
           /* White rounded result card */
           .result-card {{ background:#ffffff; border-radius:18px; padding:1.3rem 1.6rem;
              margin:0.4rem 0 0.8rem; color:#1a1a1a; box-shadow:0 8px 28px rgba(0,0,0,0.30); }}
@@ -131,6 +133,7 @@ c3, c4 = st.columns(2)
 date = c3.date_input("Date", value=dt.date(2018, 8, 12), min_value=dt.date(2016, 1, 1))
 hour = c4.select_slider(
     "Departure hour", options=list(range(24)), value=default_hour, format_func=fmt_hour,
+    key="hour_slider",
 )
 
 # ---- Prediction ----
