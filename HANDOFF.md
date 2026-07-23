@@ -2,32 +2,42 @@
 
 > **Purpose:** This document is a complete handoff of a Claude Code working session on `04_flight_delay_eda_modeling.ipynb`. It captures what was prompted, what was decided, what was built, the current project-board state, and exactly what to do next. Pull this repo, read this file top to bottom, and you can continue seamlessly in your own VS Code + Claude session.
 
-**Last updated:** 2026-07-22 (modeling + Phase 5.1 slide-draft session)
-**Branch:** `adw0721` (Alex; earlier EDA/feature work was on `ml_project_sulu`)
-**Driven by:** Alex (AlexDeWilde)
-**Continuing:** colleague picking up next
+**Last updated:** 2026-07-23 (Phases 6–8 complete; app finalized; branch cleanup)
+**Working branch:** `main` (all work merged; only `main` + Alex's `adw0721` remain on the remote)
 **Notebook:** [04_flight_delay_eda_modeling.ipynb](04_flight_delay_eda_modeling.ipynb)
-**Slide deck (Phase 5.1):** [slides_draft.md](slides_draft.md) (the outline/source of truth) + rendered `Tunisair Flight Delay Deck.html`
+**Slide deck:** [slides_draft.md](slides_draft.md) (content source of truth) + `Tunisair Flight Delay Deck.html` / `Tunisair Flight Delay Deck v2.html` (rendered)
+**Data product:** [app/](app/) — Streamlit "Tunisair Delay-Alert" (see `app/README.md`)
 
 ---
 
-## ⭐ Latest update — 2026-07-23, Phases 7 & 8 complete (Sulu)
+## ⭐ CURRENT STATE — 2026-07-23 (start a new session here)
 
-**Phase 7 (finalize) and Phase 8 (data product) are DONE and merged to `main`.** Board #24, #26, #28–31 → Done.
+**Phases 1–8 are essentially COMPLETE and all merged to `main`** (`d148d1b`). Board #4: **29 of 31 Done**; only **#25** (Phase 7.2 — export the deck to PDF) and **#27** (Phase 7.4 — rehearse/present) remain, both human/presentation tasks. Alex also merged his stakeholder deck (`Tunisair Flight Delay Deck v2.html`) — the slide-deck coordination resolved cleanly (different files, no conflict).
 
-**Phase 7 (merged to main):**
-- **7.1** notebook finalized — lint fixes, reproducibility + PEP8/style notes in the Phase 7.1 section.
-- **7.2/7.3** `slides_draft.md` updated with the two-track story, real error analysis, weather evidence, and a fleshed-out data-product slide. *(Slide-deck PDF render is still #25 — pending on the deck author's side.)*
+### Headline results (verified from the run notebook)
+- Baseline held-out RMSE **141.95** min.
+- **Operational model** (tuned RF + engineered features, uses `prev_leg_delay`): **108.64** (−24%). Saved `models/delay_model.joblib` (gitignored, 350 MB — regenerate by running the notebook). Powers the app's concept; assumes prior-leg delay is known at prediction time (true operationally).
+- **Submittable model** (no `prev_leg_delay`): **130.92** → `zindi_submission.csv`.
+- **Two-track finding:** Zindi's test set is entire hidden calendar months, so `prev_leg_delay` (the #1 feature, ~38% importance) is unobservable there. Not leakage — a real airline knows the prior leg's delay; the competition just hides whole months. Error concentrates in the severe-delay tail, sparse long-haul routes, and wet-lease aircraft.
 
-**Phase 8 — Tunisair Delay-Alert Streamlit app (data product MVP), all in `app/`:**
-- `app/streamlit_app.py` (UI) + `app/delay_core.py` (logic) + `app/reference/*.csv` (lookups) + `scripts/build_app_data.py` (rebuilds model/tables) + `models/app_booking_model.joblib` (14 MB, committed).
-- **Booking-time model**: inputs = flight number/route + date; outputs a **risk category** (🟢/🟡/🔴), an honest **typical-delay range**, plain-language advice, and lower-risk **alternative departure times**. Uses only pre-departure info; holdout RMSE ~137 vs ~142 baseline — reliable for the *category*, honest that exact minutes aren't knowable at booking time.
-- Branded UI (white Tunisair logo at `app/assets/logo.png`, red background, white result card, disclaimer + authors).
-- **Run:** `uv sync && uv run streamlit run app/streamlit_app.py`
+### Phase 8 data product (built & merged) — `app/`
+Streamlit **"Tunisair Delay-Alert"**: `app/streamlit_app.py` (UI), `app/delay_core.py` (logic — shared `is_ramadan()`), `app/reference/*.csv` (lookups), `scripts/build_app_data.py` (rebuilds model+tables), `models/app_booking_model.joblib` (14 MB, committed). It's a **booking-time** model (inputs: flight number/route + date; uses only route/date/time-of-day) → risk category 🟢/🟡/🔴 + honest typical-delay range + plain-language advice + lower-risk alternative departure times. Booking-time RMSE ~137 (~4% better than baseline) — reliable for the *category*, honest that exact minutes aren't knowable at booking. Ramadan flag is year-general via `hijridate`; future-date caveat shown. Branded UI (white Tunisair logo `app/assets/logo.png`, red bg, white result card, disclaimer + authors). **Run:** `uv sync && uv run streamlit run app/streamlit_app.py`. New deps: `streamlit`, `hijridate`.
 
-**⚠️ Open coordination item — slide deck merge:** `slides_draft.md` on `main` already contains the Phase 7 rewrite (two-track story, error analysis, weather, data-product slide). If Alex edited an **older** version of `slides_draft.md`, his changes must be reconciled with the Phase 7 content when merged — pull `main` first, or push his branch and resolve the `slides_draft.md` conflict deliberately so neither side is lost.
+### 🎯 NEXT (discussed, NOT yet built): improve the app's prediction accuracy
+Prioritized:
+1. **Flight-number track record as model features** (cheapest, highest ROI — each FLTID's historical delay median/%-late/variance; currently used only for the displayed range, not as a model input).
+2. **Weather** — forecast for near-term dates, seasonal climatology for far-off (Open-Meteo feasibility already positive: adverse weather lifts severe-rate ~45%).
+3. **Schedule-derived congestion / hub load** features (knowable in advance).
+4. **Fresher data** (2022–2025; current data is pre-COVID 2016–2018).
+5. **Reframe as a calibrated risk classifier** (`predict_proba`) + quantile intervals; evaluate with classification/calibration metrics, not just RMSE.
+6. **"Closer to departure" mode** using day-of signals — bridges toward the 108.64 operational accuracy.
+*(Offered to prototype #1 on a fresh branch — the fastest way to demonstrate a real gain.)*
 
-**Branches:** `main` is current (`b70318e`). Merged feature branches still exist: `sulu-phase6-error-analysis`, `sulu-phase7-finalize`, `sulu-phase8-streamlit-app` (deletable). This doc/notebook update is on `sulu-phase8-docs`.
+### Housekeeping / gotchas
+- Remote branches: only `main` and `adw0721` (Alex's active branch) — all `sulu-*` feature branches merged & deleted.
+- Big operational models (`models/delay_model*.joblib`) are **gitignored**; the small `app_booking_model.joblib` is committed. `zindi_submission.csv` is committed.
+- Editing files on disk while the notebook/app is open in VS Code caused save-conflicts once — reload in VS Code after external edits.
+- The notebook is large (~50k tokens with outputs); the notebook-edit tool can't read it — edit its cells by scripting the `.ipynb` JSON if needed.
 
 ---
 
