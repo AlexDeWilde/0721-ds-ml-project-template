@@ -169,6 +169,13 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+if date.year > 2018:
+    st.caption(
+        "ℹ️ This date is beyond our 2016–2018 data. The estimate projects historical patterns "
+        "for this route, month and time of day forward — it is **not** a year-specific forecast, "
+        "and assumes delay behaviour hasn't fundamentally changed since 2018."
+    )
+
 st.divider()
 st.markdown("**What to do:**")
 for tip in dc.action_suggestions(risk):
@@ -202,6 +209,10 @@ flight: the route, date, and time of day. It deliberately does **not** use day-o
   slips is driven by day-of factors no booking-time tool can see. That's why we show a **range**, not
   a false-precise number.
 - **MVP scope:** a demo on 2016–2018 historical Tunisair data, not a live system.
+- **Future dates:** the model has no notion of *year* — it maps a flight's route, month, weekday
+  and time of day to the delay patterns seen in 2016–2018. So a 2026 flight gets the historical
+  pattern for a flight like it, projected forward — useful as a typical-risk guide, but not a
+  year-specific forecast, and it assumes those patterns still hold.
 
 *An airline operations team, with the aircraft's real-time prior-leg status, can predict far more
 accurately (held-out RMSE ~109 min) — but that data isn't available at booking time.*
