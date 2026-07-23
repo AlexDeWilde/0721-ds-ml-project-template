@@ -4,16 +4,21 @@ A running log of data-quality quirks, gotchas, and decisions made during the pro
 
 ---
 
-## Test-set cascade feature is a placeholder — MUST recompute before Zindi submission
+## RESOLVED: Zindi test = whole hidden months → `prev_leg_delay` unavailable → two-track models
 
 **Phase:** 2.4 / 6.3 — feature engineering vs. final evaluation
-**Status:** Open (blocks Phase 6.3 submission, does NOT affect current validation scores)
+**Status:** Resolved (Phase 6.3, 2026-07-22) — supersedes the earlier "recompute the test cascade" plan
 
-On `train`, the cascade columns (`prev_leg_delay`, `hours_since_prior_leg`, `has_prior_leg`) are real. On **`test.csv` they are neutral placeholders** — every row gets the median delay / median gap and `has_prior_leg = 0` (see the `TODO` in the Phase 2.4 fill cell). A test flight's true prior leg may be unlabeled, so the real cascade was deferred.
+**Root cause found.** Inspecting the split by month shows Zindi holds out **entire calendar months** (e.g. May 2016 = 94% test, September 2018 = 97% test; all other months ~0% test). So within a test month a flight's previous leg on the same aircraft is — **98.9% of the time — also a hidden test flight**, whose delay we don't have. `prev_leg_delay` (the model's #1 feature, ~38% importance) therefore **cannot be observed for the Zindi test set**. Chained/fixed-point prediction of it was tried and **does not converge** (oscillates ±600 min), so it is not a viable reconstruction.
 
-**Impact:** `prev_leg_delay` is the **single most important feature** in the selected model. Predicting on `test.csv` as-is would feed constant placeholders for that feature and produce poor Zindi scores. The held-out **validation** RMSE (109.53 min) is unaffected — the validation split is carved from `train`, where the cascade is fully populated.
+**Not leakage.** In a real ops room the prior leg has already landed before the current flight departs, so `prev_leg_delay` is legitimately known at prediction time — it is unavailable *here* only because of the month-block test format. `hours_since_prior_leg` / `has_prior_leg` need only schedule times and ARE computable for test.
 
-**To do before Phase 6.3:** recompute the test cascade from combined train+test history per aircraft, ordered by `STD` (a test flight's prior leg may itself be a test flight — chain the predictions, or use known prior `target`s where available). Verify no leakage (prior leg must depart before the current one).
+**Decision — two-track (with the team):**
+- **Operational model** (with `prev_leg_delay`): held-out **RMSE 108.64 min** (−23.5% vs baseline). The honest capability for the stakeholder deck, stated with its assumption. Saved as `models/delay_model.joblib` for the Phase 8 app.
+- **Submittable model** (no `prev_leg_delay`): held-out **RMSE 130.92 min** (−7.8% vs baseline). Used for the Zindi leaderboard. Produces `zindi_submission.csv`; saved as `models/delay_model_submittable.joblib`.
+- Dropping `prev_leg_delay` costs **+22.29 min** — this quantifies how much of delay is propagation, and is a headline *insight*, not a defect.
+
+**Slides action (Phase 7.2):** headline 108.64 *with the stated assumption*; also state the submittable 130.92 so the story is defensible. Frame the gap as the propagation insight.
 
 ## Baseline is 141.95 min (held-out), not ~117
 

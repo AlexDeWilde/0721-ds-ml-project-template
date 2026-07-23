@@ -139,3 +139,6 @@ dmypy.json
 # nbdime Stuff
 .gitattributes
 
+
+# Trained model artifacts (large; regenerate by running the notebook)
+models/*.joblib

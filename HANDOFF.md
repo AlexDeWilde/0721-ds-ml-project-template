@@ -11,6 +11,27 @@
 
 ---
 
+## ⭐ Latest update — 2026-07-22, Phase 6 complete (Sulu, branch `sulu-phase6-error-analysis`)
+
+**Phase 6 (error analysis → iteration → final evaluation) is DONE in the notebook.** Board #21, #22, #23 → Done.
+
+- **6.1 Error analysis:** model under-predicts the **severe-delay tail** (severe band 180+ min under-predicted ~145 min each — this *is* the RMSE); worst on sparse long-haul routes and wet-lease aircraft.
+- **6.2 Iteration:** added `dep_congestion`, `leg_of_day` (best new feature), `ac_type_freq`, `is_wet_lease`, `dep_is_ramadan`. New best model **RF + new features = 108.64 min** (was 109.53). Log-transform target **rejected** (worse: 117.7). Weather was feasibility-tested (real Open-Meteo data: adverse weather lifts the severe rate ~45%) and documented as the **#1 future-work** item (not built — Day-3 time).
+- **6.3 Final eval — KEY FINDING (two-track):** the Zindi test set is **whole hidden months**, so `prev_leg_delay` (top feature, ~38% importance) is **unavailable for test**. Not leakage — a real airline knows the prior leg's delay; Zindi just hides whole months. Decision:
+  - **Operational model** (with `prev_leg_delay`): **RMSE 108.64** — headline for stakeholders, saved `models/delay_model.joblib`.
+  - **Submittable model** (no `prev_leg_delay`): **RMSE 130.92** — the Zindi entry, produces `zindi_submission.csv`, saved `models/delay_model_submittable.joblib`.
+  - Dropping the feature costs **+22.29 min** — the propagation insight, a headline point (not a flaw). See ISSUES.md.
+
+**New artifacts:** `zindi_submission.csv`, `models/delay_model.joblib`, `models/delay_model_submittable.joblib`.
+
+**Slides action (Phase 7.2):** headline 108.64 *with the stated assumption* (prior-leg delay known at prediction time), also state the submittable 130.92, and present the propagation gap as the key insight. The current deck predates this finding.
+
+**Next up:** board **#24 (Phase 7.1)** finalize notebook, then **#25 (7.2)** update the deck with the two-track story. (Phase 8 Streamlit app can reuse `models/delay_model.joblib`.)
+
+> ⚠️ **Notebook is large** (~50k tokens with outputs) — the notebook-edit tool can't read it, so this session's cells were inserted by editing the `.ipynb` JSON directly. Also: editing the file on disk while it's open in VS Code caused one cell to be dropped once (recovered) — **close or reload the notebook in VS Code before/after external edits** to avoid save conflicts.
+
+---
+
 ## 1. Project at a glance
 
 - **Challenge:** [Zindi Flight Delay Prediction Challenge](https://zindi.africa/competitions/flight-delay-prediction-challenge) (Tunisair).
