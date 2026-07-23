@@ -142,3 +142,6 @@ dmypy.json
 
 # Trained model artifacts (large; regenerate by running the notebook)
 models/*.joblib
+
+# ...but keep the small booking-time model the Streamlit app needs
+!models/app_booking_model.joblib
