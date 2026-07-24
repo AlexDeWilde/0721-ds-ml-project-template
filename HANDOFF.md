@@ -2,15 +2,48 @@
 
 > **Purpose:** This document is a complete handoff of a Claude Code working session on `04_flight_delay_eda_modeling.ipynb`. It captures what was prompted, what was decided, what was built, the current project-board state, and exactly what to do next. Pull this repo, read this file top to bottom, and you can continue seamlessly in your own VS Code + Claude session.
 
-**Last updated:** 2026-07-23 (Phases 6–8 complete; app finalized; branch cleanup)
-**Working branch:** `main` (all work merged; only `main` + Alex's `adw0721` remain on the remote)
+**Last updated:** 2026-07-24 (accuracy roadmap #1 & #2 prototyped; weather-sensitivity ladder shipped into the app; UI polish)
+**Working branch:** `sulu-flight-history-features` (accuracy work; merged to `main`)
 **Notebook:** [04_flight_delay_eda_modeling.ipynb](04_flight_delay_eda_modeling.ipynb)
 **Slide deck:** [slides_draft.md](slides_draft.md) (content source of truth) + `Tunisair Flight Delay Deck.html` / `Tunisair Flight Delay Deck v2.html` (rendered)
 **Data product:** [app/](app/) — Streamlit "Tunisair Delay-Alert" (see `app/README.md`)
 
 ---
 
-## ⭐ CURRENT STATE — 2026-07-23 (start a new session here)
+## ⭐ CURRENT STATE — 2026-07-24 (accuracy roadmap #1 & #2; weather ladder in the app)
+
+Session focus: **improving prediction accuracy & UX** (the roadmap below). Both #1 and #2 were prototyped as measured, leakage-safe experiments *before* touching the app; #2 was then shipped into the Streamlit app as a user-facing feature. Branch: `sulu-flight-history-features`.
+
+### Roadmap #1 — flight-number (FLTID) history as features → *documented finding, NOT wired in*
+- Script [scripts/experiment_fltid_features.py](scripts/experiment_fltid_features.py); write-up [FLTID_FEATURE_EXPERIMENT.md](FLTID_FEATURE_EXPERIMENT.md).
+- Leakage-safe eval (per-FLTID stats fit on the train split only, shrunk toward global). **Finding:** the kitchen-sink of 5 stats *overfits* (net worse); a **single strongly-shrunk per-FLTID median delay** gives a small real gain (**136.78 → 136.22, −0.55 min / 0.4%**, stable across shrinkage K=75–150).
+- **Decision:** kept as evidence; **not** integrated (tiny gain). Cheap to add later (median-only feature).
+
+### Roadmap #2 — weather → *shipped into the app as a "weather-sensitivity ladder"*
+- Scripts: [scripts/fetch_weather.py](scripts/fetch_weather.py) (caches ERA5 hourly weather, Open-Meteo, no key), [scripts/weather_core.py](scripts/weather_core.py) (naming + join + scenario table), [scripts/experiment_weather_features.py](scripts/experiment_weather_features.py); write-up [WEATHER_SCENARIO_EXPERIMENT.md](WEATHER_SCENARIO_EXPERIMENT.md).
+- **Two findings:** (a) weather does **not** lower RMSE (−0.4 min; the severe-delay tail dominates, same as #1); (b) but the model's weather **response is strong & monotonic** (calm→heavy-rain+wind ≈ +27 min; clean gust dose-response). So weather is valuable as a **sensitivity ladder**, not a sharper number — which validated the product idea.
+- **Shipped:** the app model is retrained **with 4 weather features** (`wx_wind_gust/precip/snow/adverse`; neutral-filled for the ~23% of flights at airports without weather coverage). Holdout RMSE unchanged (**137.12**). New committed reference [app/reference/weather_scenarios.csv](app/reference/weather_scenarios.csv) (15 airports × 12 months × calm/rough/severe bands, **named** conditions + odds; precomputed so the app needs no network). `delay_core.weather_ladder()` runs the model under each scenario; the headline "Average expected delay" for covered airports is the **weather-weighted outlook** (rungs bracket it; monotonic display clamp; uncovered airports show no ladder).
+- **Coverage / data limits (in the UI):** weather only for the **top-15 departure airports (77% of flights)**; ERA5 has **no fog/thunderstorm** codes (a future **METAR** upgrade — needs IATA→ICAO mapping).
+
+### App UX changes (Streamlit)
+- **Weather-sensitivity card** with **line-style SVG weather icons** per rung (sun/cloud/rain/snow/wind/storm/fog), minutes tinted by risk, probabilities, and a weighted-outlook line.
+- **Reconciled the two headline numbers** (a user-confusion fix): "Model risk estimate" → **"Average expected delay"** (burgundy, enlarged; it's the *mean*, pulled up by the skewed tail — dataset mean 48.7 vs median 14), and the typical range now shows the **median too** (`p25–median–p75`). "Typical delay on this route" right-aligned.
+- **Slider fix:** Streamlit 1.60's slider is **react-aria + emotion** (not baseweb) — the red came from `theme.primaryColor` on emotion `target` classes `.e23vpic5` (fill) / `.e23vpic3` (thumb). Now white track + white thumb (with ring) + white value text. Logo size tweaked.
+
+### Commits on branch (not yet on `main` at time of writing → then merged)
+`411b591` experiments + README rewrite · `4fb13c4` weather ladder integrated · `f2449aa` UI polish. README rewritten from the stale template into a full Tunisair file guide.
+
+### Gotchas this session
+- **Untracked files got wiped once** mid-session (the env cleaned untracked files) — recovered from context; **commit early** to avoid recurrence.
+- **No browser in the sandbox** (no root; Chromium libs missing) — the slider fix was verified by reading Streamlit's compiled `Slider.js` to find the real emotion classes, not by rendering.
+- `data/weather_cache/` is **gitignored** — regenerate with `scripts/fetch_weather.py`.
+
+### Immediate next options (discussed)
+Wire #1's FLTID median in (cheap); add **congestion (#3)**, **fresher data (#4)**, **calibrated classifier (#5)**, **"closer to departure" mode (#6)**; **METAR** for fog/thunderstorm naming. See the prioritized list below.
+
+---
+
+## ⭐ CURRENT STATE — 2026-07-23 (Phases 1–8 complete)
 
 **Phases 1–8 are essentially COMPLETE and all merged to `main`** (`d148d1b`). Board #4: **29 of 31 Done**; only **#25** (Phase 7.2 — export the deck to PDF) and **#27** (Phase 7.4 — rehearse/present) remain, both human/presentation tasks. Alex also merged his stakeholder deck (`Tunisair Flight Delay Deck v2.html`) — the slide-deck coordination resolved cleanly (different files, no conflict).
 
