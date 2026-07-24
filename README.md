@@ -14,7 +14,6 @@ Predicting flight **delay in minutes** for Tunisair, framed for two audiences: a
 | **Operational model** (tuned RF, uses prior-leg delay) | **108.64** | −24%; for the ops team; assumes prior-leg delay known at prediction time |
 | Submittable model (no prior-leg delay) | 130.92 | the Zindi entry → `zindi_submission.csv` |
 | Booking-time model (app) | — | reframed as a **calibrated risk classifier** (ROC-AUC 0.80 for ≥15 min, 0.76 for ≥60 min) + **quantile range**; powers the Streamlit app |
-| Day-of model (app) | — | adds the inbound aircraft's current delay → ROC-AUC **0.89 / 0.91**; the app's "Day of travel" mode |
 
 **Key insight:** error is dominated by the **severe-delay tail** (180 min+), driven mostly by delay *propagation* (a plane inheriting its previous leg's delay). Features that don't speak to the tail (weather, per-flight history) barely move RMSE — but are still valuable for *communicating risk* to travellers (see the experiment write-ups).
 
@@ -52,7 +51,7 @@ Every file, what it contains, and why it matters.
 
 ### 🖥️ The data product — `app/` (Streamlit "Tunisair Delay-Alert")
 
-A **booking-time** web app: type a flight → get a delay-risk category (🟢/🟡/🔴) backed by **calibrated probabilities** (chance of a 15+/60+ min delay), a **flight-specific quantile range** (typical / up-to / bad-day), a **weather-sensitivity ladder** (how the flight runs under that airport's plausible weather — calm/rough/severe, named), plain-language advice, and calmer alternative departure times. It resolves weather by horizon — **recorded** (historical) → **live forecast** (≤16 days, Open-Meteo) → **seasonal** typical (further out) — and feeds any known weather into the risk & range. A **"Day of travel"** mode additionally takes the **inbound aircraft's current delay** (delay propagation, the strongest signal) for a far sharper estimate near departure.
+A **booking-time** web app: type a flight → get a delay-risk category (🟢/🟡/🔴) backed by **calibrated probabilities** (chance of a 15+/60+ min delay), a **flight-specific quantile range** (typical / up-to / bad-day), a **weather-sensitivity ladder** (how the flight runs under that airport's plausible weather — calm/rough/severe, named), plain-language advice, and calmer alternative departure times. It resolves weather by horizon — **recorded** (historical) → **live forecast** (≤16 days, Open-Meteo) → **seasonal** typical (further out) — and feeds any known weather into the risk & range.
 
 | File | Contains | Significance |
 |---|---|---|

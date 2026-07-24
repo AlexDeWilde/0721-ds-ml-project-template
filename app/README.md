@@ -11,11 +11,6 @@ Pick a flight — by **flight number** or by **route** — and a **date**, and g
 - **action suggestions**, and
 - **lower-risk alternative departure times** on the same route.
 
-Two modes: **At booking** (route/date/time/weather only) and **Day of travel**, which adds the
-**inbound aircraft's current delay** — the strongest signal (delay propagation) — for a far sharper
-estimate. On a held-out future period the day-of model reaches ROC-AUC **0.89 (≥15 min) / 0.91
-(≥60 min)** vs the booking model's 0.80 / 0.76.
-
 ## Run it
 
 ```bash

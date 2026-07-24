@@ -3,7 +3,7 @@
 > **Purpose:** This document is a complete handoff of a Claude Code working session on `04_flight_delay_eda_modeling.ipynb`. It captures what was prompted, what was decided, what was built, the current project-board state, and exactly what to do next. Pull this repo, read this file top to bottom, and you can continue seamlessly in your own VS Code + Claude session.
 
 **Last updated:** 2026-07-24 (accuracy roadmap #1, #2 & #5; weather ladder + calibrated-classifier reframe shipped into the app)
-**Working branch:** `sulu-dayof-mode` (#6 day-of/closer-to-departure mode; merging to `main`). Prior merged: `sulu-flight-history-features` (#1/#2), `sulu-risk-classifier` (#5), `sulu-actual-weather-badge` (tiered weather), `sulu-drift-analysis` (#4 evidence).
+**Working branch:** `sulu-actual-weather-badge` (tiered weather: recorded/forecast/seasonal, feeds prediction; merged to `main`). Prior merged: `sulu-flight-history-features` (#1/#2), `sulu-risk-classifier` (#5).
 **Notebook:** [04_flight_delay_eda_modeling.ipynb](04_flight_delay_eda_modeling.ipynb)
 **Slide deck:** [slides_draft.md](slides_draft.md) (content source of truth) + `Tunisair Flight Delay Deck.html` / `Tunisair Flight Delay Deck v2.html` (rendered)
 **Data product:** [app/](app/) — Streamlit "Tunisair Delay-Alert" (see `app/README.md`)
@@ -52,14 +52,8 @@ Session focus: **improving prediction accuracy & UX** (the roadmap below). Both 
 
 When weather is **known** (recorded/forecast) the risk & quantile range are predicted **under that specific weather** (not just the weather-weighted outlook), and the matching ladder rung is highlighted; a corner **badge** (icon + RECORDED/FORECAST/SEASONAL tag) shows the condition. **Honest limit:** genuine day-specific forecasts only exist ~16 days out; beyond that it's a seasonal norm, labelled as such. Branch `sulu-actual-weather-badge` (commits `86d8243`→`78ff2d1`→`e33b5b7`).
 
-### Roadmap #4 — drift analysis *(measured; can't get fresh labels)*
-`scripts/experiment_data_drift.py` · write-up `DATA_DRIFT_EXPERIMENT.md`. No free 2022–25 Tunisair delay labels exist (public feeds give actual times but not scheduled). So we measured decay on existing data (train 2016, apply to later half-years): **ranking (AUC) is durable to 18 months; decay is regime-driven** (2018 H2 mean 64 vs ~52), not clock-driven; the **severe tail is chronically under-covered** (p90 ≈ 80%). **Cadence recommendation:** refit ranking ~annually; recalibrate probabilities + refresh quantiles each season (time-aware). A post-COVID refresh mainly fixes level/calibration, not ranking.
-
-### Roadmap #6 — "closer to departure" (day-of) mode *(shipped)*
-`build_app_data.py` now also trains a **day-of model set** (calibrated classifiers + quantiles) that adds the aircraft's **prior-leg delay** (`prev_leg_delay`, + `hours_since_prior_leg`, `has_prior_leg`; leakage-safe — prior leg departs strictly earlier). Hold-out lift is large: **AUC 0.80→0.89 (≥15) and 0.76→0.91 (≥60)** — most big delays are *propagated*. The app has a **"When are you checking?"** toggle: *At booking* (default) vs *Day of travel*, which adds an **"inbound aircraft currently delayed by"** slider and predicts under the day-of model (booking-time ladder/alternatives hidden; a contrast note shows the booking estimate). Model now ~4.5 MB. Branch `sulu-dayof-mode`.
-
 ### Immediate next options
-Wire #1's FLTID median in (cheap); add **congestion (#3)**; **METAR** for fog/thunderstorm naming; auto-fetch the inbound-leg delay live (day-of) instead of the manual slider; seasonal recalibration job. The notebook **Appendix** summarises #1/#2/#5.
+Wire #1's FLTID median in (cheap); add **congestion (#3)**; **fresher 2022–25 data (#4)** (now the clearest ceiling); **"closer to departure" mode (#6)**; **METAR** for fog/thunderstorm naming. The notebook now has an **Appendix** summarising #1/#2/#5 + the tiered weather.
 
 ---
 
