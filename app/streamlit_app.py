@@ -20,6 +20,55 @@ st.set_page_config(page_title="Tunisair Delay-Alert System", page_icon="✈️",
 
 ASSETS = Path(__file__).parent / "assets"
 
+# --- Line-style weather icons (inline SVG), matched to the scenario condition labels ---
+_SVG = ("<svg class='wx-ic' viewBox='0 0 24 24' fill='none' stroke-width='1.7' "
+        "stroke-linecap='round' stroke-linejoin='round'>{}</svg>")
+_AMBER, _SLATE, _BLUE, _CYAN, _GREY = "#f5a623", "#64748b", "#2f6df0", "#38bdf8", "#6b7280"
+_CLOUD = f"<path stroke='{_SLATE}' d='M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25'/>"
+WEATHER_ICONS = {
+    "sun": _SVG.format(
+        f"<g stroke='{_AMBER}'><circle cx='12' cy='12' r='4.2'/>"
+        "<path d='M12 2v2M12 20v2M4.2 4.2l1.4 1.4M18.4 18.4l1.4 1.4M2 12h2M20 12h2"
+        "M4.2 19.8l1.4-1.4M18.4 5.6l1.4-1.4'/></g>"),
+    "partly": _SVG.format(
+        f"<g stroke='{_AMBER}'><circle cx='8' cy='7.5' r='2.6'/>"
+        "<path d='M8 2.4v1.3M3.4 7.5H2.1M4.9 4.4l-.9-.9M11.1 4.4l.9-.9'/></g>"
+        f"<path stroke='{_SLATE}' d='M18 13h-1.05A6 6 0 1 0 8 18h10a4 4 0 0 0 0-8z'/>"),
+    "cloud": _SVG.format(f"<path stroke='{_SLATE}' d='M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z'/>"),
+    "rain": _SVG.format(_CLOUD + f"<path stroke='{_BLUE}' d='M8 15v3M12 16v4M16 15v3'/>"),
+    "snow": _SVG.format(_CLOUD + f"<g stroke='{_CYAN}'><path d='M8 16h.01M12 18h.01M16 16h.01M10 20h.01M14 20h.01'/></g>"),
+    "wind": _SVG.format(
+        f"<path stroke='{_GREY}' d='M9.6 4.6A2 2 0 1 1 11 8H2m10.6 11.4A2 2 0 1 0 14 16H2"
+        "m15.7-8.3A2.5 2.5 0 1 1 19.5 12H2'/>"),
+    "storm": _SVG.format(
+        f"<path stroke='{_SLATE}' d='M19 16.9A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 5.1 16'/>"
+        f"<path stroke='{_AMBER}' d='M13 11l-4 6h6l-4 6'/>"),
+    "fog": _SVG.format(f"<path stroke='{_SLATE}' d='M3 9h14M5 13h15M4 17h13'/>"),
+}
+
+
+def weather_icon(label):
+    """Pick the line icon for a scenario's condition label (precip beats wind)."""
+    l = label.lower()
+    if "thunder" in l:
+        return WEATHER_ICONS["storm"]
+    if "snow" in l:
+        return WEATHER_ICONS["snow"]
+    if "rain" in l or "drizzle" in l:
+        return WEATHER_ICONS["rain"]
+    if "fog" in l:
+        return WEATHER_ICONS["fog"]
+    if "wind" in l or "gale" in l:
+        return WEATHER_ICONS["wind"]
+    if "overcast" in l:
+        return WEATHER_ICONS["cloud"]
+    if "partly" in l:
+        return WEATHER_ICONS["partly"]
+    return WEATHER_ICONS["sun"]
+
+
+RISK_TEXT_COLOR = {"Low": "#1b7e3f", "Moderate": "#9a5b00", "High": "#b3261e"}
+
 
 def _find(stem):
     """First existing image file 'stem.ext' in the assets folder, or None."""
@@ -72,6 +121,18 @@ def inject_style():
           .metric-label {{ color:#666; font-size:0.82rem; }}
           .metric-value {{ color:#111; font-size:1.7rem; font-weight:700; line-height:1.15; }}
           .metric-note {{ color:#8a8a8a; font-size:0.74rem; margin-top:0.15rem; }}
+          /* Weather-sensitivity card */
+          .wx-title {{ font-weight:700; font-size:1.05rem; color:#1a1a1a; }}
+          .wx-sub {{ color:#666; font-size:0.84rem; margin:0.25rem 0 0.9rem; }}
+          .wx-row {{ display:flex; align-items:center; justify-content:space-between;
+             padding:0.5rem 0; border-top:1px solid #eee; }}
+          .wx-cond {{ font-weight:600; color:#1a1a1a; flex:1.5; display:flex; align-items:center; }}
+          .wx-prob {{ color:#777; font-size:0.86rem; flex:1; text-align:center; }}
+          .wx-min {{ font-weight:700; color:#111; flex:0.8; text-align:right; }}
+          .wx-ic {{ width:24px; height:24px; margin-right:0.6rem; flex-shrink:0; }}
+          .wx-outlook {{ margin-top:0.8rem; padding-top:0.7rem; border-top:2px solid #ddd;
+             color:#1a1a1a; font-size:0.98rem; }}
+          .wx-note {{ color:#8a8a8a; font-size:0.78rem; margin-top:0.4rem; }}
           .logo-word {{ color:#ffffff; letter-spacing:1px; }}
           .page-footer {{ text-align:center; opacity:0.82; font-size:0.83rem; margin-top:0.4rem; }}
           .page-footer b {{ color:#ffffff; }}
@@ -142,7 +203,15 @@ if dep == arr:
     st.stop()
 
 result = dc.predict(dep, arr, str(date), hour, bundle)
-risk, emoji = result["risk"], result["emoji"]
+ladder = dc.weather_ladder(dep, arr, str(date), hour, bundle)
+# When we have weather coverage, the headline is the weather-weighted expected delay
+# (the ladder below decomposes it); otherwise it's the typical-day prediction.
+if ladder:
+    headline_min = ladder["weighted"]
+    risk, emoji = dc.risk_category(headline_min, bundle)
+else:
+    headline_min = result["pred_minutes"]
+    risk, emoji = result["risk"], result["emoji"]
 
 st.divider()
 risk_class = {"Low": "risk-low", "Moderate": "risk-moderate", "High": "risk-high"}[risk]
@@ -156,7 +225,7 @@ st.markdown(
       <div class="metric-row">
         <div class="metric">
           <div class="metric-label">Model risk estimate</div>
-          <div class="metric-value">~{result['pred_minutes']:.0f} min</div>
+          <div class="metric-value">~{headline_min:.0f} min</div>
         </div>
         <div class="metric">
           <div class="metric-label">Typical delay on this route</div>
@@ -174,6 +243,42 @@ if date.year > 2018:
         "ℹ️ This date is beyond our 2016–2018 data. The estimate projects historical patterns "
         "for this route, month and time of day forward — it is **not** a year-specific forecast, "
         "and assumes delay behaviour hasn't fundamentally changed since 2018."
+    )
+
+# ---- Weather sensitivity ladder ----
+if ladder:
+    rows_html = ""
+    for r in ladder["rungs"]:
+        color = RISK_TEXT_COLOR.get(r["risk"], "#111")
+        rows_html += (
+            f"<div class='wx-row'>"
+            f"<span class='wx-cond'>{weather_icon(r['label'])}<span>{r['label']}</span></span>"
+            f"<span class='wx-prob'>{r['prob']*100:.0f}% of days</span>"
+            f"<span class='wx-min' style='color:{color}'>{r['emoji']} ~{r['pred_minutes']:.0f} min</span>"
+            f"</div>"
+        )
+    note = (
+        "" if ladder["sensitive"]
+        else "<div class='wx-note'>This flight isn't very weather-sensitive — "
+             "weather shifts the expected delay by only a few minutes.</div>"
+    )
+    st.markdown(
+        f"""
+        <div class="result-card">
+          <div class="wx-title">🌦️ Weather sensitivity at {dep} in {date:%B}</div>
+          <div class="wx-sub">You can't know the weather when booking, so here's how this flight
+          tends to run across {dep}'s typical {date:%B} conditions — and how often each occurs.</div>
+          {rows_html}
+          <div class="wx-outlook">Weather-weighted outlook: <b>~{ladder['weighted']:.0f} min</b>
+          — this is the headline estimate above.</div>
+          {note}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.caption(
+        "Weather scenarios use 2016–2018 ERA5 records for the departure airport. Fog and "
+        "thunderstorms aren't in this data source, so those aren't shown yet."
     )
 
 st.divider()
@@ -200,14 +305,18 @@ with st.expander("How this works (and its limits)"):
     st.markdown(
         f"""
 This tool uses a **booking-time model** — it knows only what a traveller does before a
-flight: the route, date, and time of day. It deliberately does **not** use day-of signals
-(the aircraft's earlier delays, congestion, weather), because you can't know those in advance.
+flight: the route, date, and time of day. It does **not** use signals you can't know in
+advance (the aircraft's earlier delays, congestion). For **weather** — which you also can't
+know at booking — it doesn't guess a forecast; instead it shows how the flight typically runs
+across that airport's plausible weather for the month (the *weather sensitivity* card).
 
 - **What it's good at:** the **risk category** — it separates low- from high-risk flights well.
 - **What it can't do:** predict the exact minutes. Held-out error is {bundle['holdout_rmse']:.0f} min
   (vs {bundle['baseline_rmse']:.0f} for guessing the average) — *how many* minutes a specific flight
   slips is driven by day-of factors no booking-time tool can see. That's why we show a **range**, not
   a false-precise number.
+- **Weather sensitivity:** available for the busiest ~15 departure airports (most Tunisair
+  departures); other airports show the estimate without a weather breakdown.
 - **MVP scope:** a demo on 2016–2018 historical Tunisair data, not a live system.
 - **Future dates:** the model has no notion of *year* — it maps a flight's route, month, weekday
   and time of day to the delay patterns seen in 2016–2018. So a 2026 flight gets the historical

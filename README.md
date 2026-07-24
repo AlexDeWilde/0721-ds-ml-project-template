@@ -51,7 +51,7 @@ Every file, what it contains, and why it matters.
 
 ### 🖥️ The data product — `app/` (Streamlit "Tunisair Delay-Alert")
 
-A **booking-time** web app: type a flight → get a delay-risk category (🟢/🟡/🔴), an honest typical-delay range, plain-language advice, and calmer alternative departure times.
+A **booking-time** web app: type a flight → get a delay-risk category (🟢/🟡/🔴), an honest typical-delay range, a **weather-sensitivity ladder** (how the flight runs under that airport's plausible weather — calm/rough/severe, named), plain-language advice, and calmer alternative departure times.
 
 | File | Contains | Significance |
 |---|---|---|
@@ -61,6 +61,7 @@ A **booking-time** web app: type a flight → get a delay-risk category (🟢/�
 | [app/reference/country_pair_freq.csv](app/reference/country_pair_freq.csv) | Country-pair → frequency. | Same, for country pairs. |
 | [app/reference/flight_schedule.csv](app/reference/flight_schedule.csv) | Flight number → route + typical departure hour. | Powers the flight-number lookup, dropdowns, and alternatives. |
 | [app/reference/route_delay_stats.csv](app/reference/route_delay_stats.csv) | Route → empirical delay p25/p50/p75. | The honest "typical range" shown to travellers. |
+| [app/reference/weather_scenarios.csv](app/reference/weather_scenarios.csv) | Per airport/month calm/rough/severe weather bands (named, with odds & representative values). | Powers the **weather-sensitivity ladder** (roadmap #2); precomputed so the app needs no network. |
 | [app/assets/logo.png](app/assets/logo.png) | White Tunisair logo. | Branding. |
 | [app/README.md](app/README.md) | How to run the app. | App-specific docs. |
 

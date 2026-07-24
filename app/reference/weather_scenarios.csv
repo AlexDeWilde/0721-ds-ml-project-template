@@ -1,0 +1,523 @@
+airport,month,band,prob,label,wx_wind_gust,wx_precip,wx_snow,wx_adverse
+ALG,1,calm,0.8226,Clear,17.6,0.0,0.0,0
+ALG,1,rough,0.1716,Strong wind,58.3,0.0,0.0,1
+ALG,1,severe,0.0058,Gale-force wind,66.6,0.0,0.0,1
+ALG,2,calm,0.7299,Overcast,19.4,0.0,0.0,0
+ALG,2,rough,0.2235,Strong wind,52.2,0.0,0.0,1
+ALG,2,severe,0.0466,Gale-force wind,74.9,0.0,0.0,1
+ALG,3,calm,0.7711,Drizzle,7.2,0.3,0.0,0
+ALG,3,rough,0.2128,Strong wind,54.4,0.0,0.0,1
+ALG,3,severe,0.0161,Drizzle + strong wind,67.7,0.3,0.0,1
+ALG,4,calm,0.8495,Partly cloudy,18.4,0.0,0.0,0
+ALG,4,rough,0.144,Drizzle,25.2,0.7,0.0,1
+ALG,4,severe,0.0065,Gale-force wind,74.2,0.0,0.0,1
+ALG,5,calm,0.8911,Partly cloudy,19.1,0.0,0.0,0
+ALG,5,rough,0.1057,Strong wind,46.8,0.0,0.0,1
+ALG,5,severe,0.0031,Gale-force wind,62.6,0.0,0.0,1
+ALG,6,calm,0.9292,Partly cloudy,18.4,0.0,0.0,0
+ALG,6,rough,0.0708,Strong wind,45.0,0.0,0.0,1
+ALG,7,calm,0.9328,Clear,19.8,0.0,0.0,0
+ALG,7,rough,0.0672,Strong wind,43.2,0.0,0.0,1
+ALG,8,calm,0.9297,Partly cloudy,17.6,0.0,0.0,0
+ALG,8,rough,0.0703,Strong wind,43.2,0.0,0.0,1
+ALG,9,calm,0.9458,Clear,16.9,0.0,0.0,0
+ALG,9,rough,0.0542,Strong wind,43.9,0.0,0.0,1
+ALG,10,calm,0.9216,Clear,17.3,0.0,0.0,0
+ALG,10,rough,0.0762,Strong wind,49.7,0.0,0.0,1
+ALG,10,severe,0.0022,Gale-force wind,79.6,0.0,0.0,1
+ALG,11,calm,0.8296,Clear,18.0,0.0,0.0,0
+ALG,11,rough,0.1556,Drizzle,24.1,0.8,0.0,1
+ALG,11,severe,0.0148,Gale-force wind,67.0,0.0,0.0,1
+ALG,12,calm,0.8705,Partly cloudy,14.8,0.0,0.0,0
+ALG,12,rough,0.125,Drizzle + strong wind,53.3,0.1,0.0,1
+ALG,12,severe,0.0045,Light rain + strong wind,78.5,2.0,0.0,1
+BRU,1,calm,0.6564,Overcast,23.4,0.0,0.0,0
+BRU,1,rough,0.2979,Drizzle + strong wind,49.0,0.1,0.0,1
+BRU,1,severe,0.0457,Gale-force wind,87.1,0.0,0.0,1
+BRU,2,calm,0.6721,Partly cloudy,25.2,0.0,0.0,0
+BRU,2,rough,0.2897,Strong wind,52.6,0.0,0.0,1
+BRU,2,severe,0.0382,Gale-force wind,80.3,0.0,0.0,1
+BRU,3,calm,0.6935,Overcast,25.2,0.0,0.0,0
+BRU,3,rough,0.2814,Strong wind,51.5,0.0,0.0,1
+BRU,3,severe,0.0251,Gale-force wind,71.6,0.0,0.0,1
+BRU,4,calm,0.8148,Overcast,23.4,0.0,0.0,0
+BRU,4,rough,0.1819,Strong wind,50.0,0.0,0.0,1
+BRU,4,severe,0.0032,Drizzle + strong wind,74.5,0.1,0.0,1
+BRU,5,calm,0.8925,Clear,23.0,0.0,0.0,0
+BRU,5,rough,0.1071,Strong wind,48.6,0.0,0.0,1
+BRU,5,severe,0.0004,Rain,23.0,5.9,0.0,1
+BRU,6,calm,0.8435,Drizzle,19.4,0.1,0.0,0
+BRU,6,rough,0.1454,Strong wind,49.3,0.0,0.0,1
+BRU,6,severe,0.0111,Drizzle + strong wind,69.1,0.1,0.0,1
+BRU,7,calm,0.8737,Partly cloudy,22.7,0.0,0.0,0
+BRU,7,rough,0.1237,Strong wind,50.0,0.0,0.0,1
+BRU,7,severe,0.0027,Drizzle + strong wind,66.6,0.2,0.0,1
+BRU,8,calm,0.8638,Partly cloudy,21.2,0.0,0.0,0
+BRU,8,rough,0.1335,Drizzle + strong wind,48.2,0.1,0.0,1
+BRU,8,severe,0.0027,Drizzle + strong wind,63.4,0.1,0.0,1
+BRU,9,calm,0.8468,Overcast,19.4,0.0,0.0,0
+BRU,9,rough,0.1384,Strong wind,49.7,0.0,0.0,1
+BRU,9,severe,0.0148,Gale-force wind,78.1,0.0,0.0,1
+BRU,10,calm,0.8123,Partly cloudy,23.4,0.0,0.0,0
+BRU,10,rough,0.185,Strong wind,47.2,0.0,0.0,1
+BRU,10,severe,0.0027,Light rain + strong wind,63.0,1.4,0.0,1
+BRU,11,calm,0.7477,Overcast,23.0,0.0,0.0,0
+BRU,11,rough,0.2324,Drizzle + strong wind,46.4,0.1,0.0,1
+BRU,11,severe,0.0199,Gale-force wind,89.6,0.0,0.0,1
+BRU,12,calm,0.7231,Overcast,22.3,0.0,0.0,0
+BRU,12,rough,0.2348,Drizzle + strong wind,45.7,0.2,0.0,1
+BRU,12,severe,0.0421,Drizzle + strong wind,69.5,0.3,0.0,1
+CMN,1,calm,0.948,Clear,17.6,0.0,0.0,0
+CMN,1,rough,0.0493,Drizzle,25.2,0.6,0.0,1
+CMN,1,severe,0.0027,Drizzle + strong wind,68.4,1.2,0.0,1
+CMN,2,calm,0.9074,Overcast,17.6,0.0,0.0,0
+CMN,2,rough,0.0868,Drizzle + strong wind,40.0,0.4,0.0,1
+CMN,2,severe,0.0059,Drizzle + strong wind,68.4,1.1,0.0,1
+CMN,3,calm,0.8584,Overcast,19.1,0.0,0.0,0
+CMN,3,rough,0.1228,Drizzle,21.6,0.7,0.0,1
+CMN,3,severe,0.0188,Drizzle + strong wind,81.0,0.1,0.0,1
+CMN,4,calm,0.913,Clear,20.2,0.0,0.0,0
+CMN,4,rough,0.0824,Strong wind,44.6,0.0,0.0,1
+CMN,4,severe,0.0046,Drizzle + strong wind,66.2,0.1,0.0,1
+CMN,5,calm,0.8804,Overcast,21.2,0.0,0.0,0
+CMN,5,rough,0.1165,Strong wind,45.0,0.0,0.0,1
+CMN,5,severe,0.0031,Drizzle + strong wind,73.4,0.1,0.0,1
+CMN,6,calm,0.9028,Clear,20.9,0.0,0.0,0
+CMN,6,rough,0.0972,Strong wind,43.2,0.0,0.0,1
+CMN,7,calm,0.9368,Clear,20.9,0.0,0.0,0
+CMN,7,rough,0.0632,Strong wind,41.4,0.0,0.0,1
+CMN,8,calm,0.9633,Partly cloudy,18.7,0.0,0.0,0
+CMN,8,rough,0.0367,Strong wind,41.8,0.0,0.0,1
+CMN,9,calm,0.975,Overcast,17.3,0.0,0.0,0
+CMN,9,rough,0.025,Strong wind,42.5,0.0,0.0,1
+CMN,10,calm,0.9297,Clear,17.3,0.0,0.0,0
+CMN,10,rough,0.0677,Drizzle + strong wind,50.0,0.1,0.0,1
+CMN,10,severe,0.0027,Drizzle + strong wind,75.6,1.1,0.0,1
+CMN,11,calm,0.9083,Overcast,17.3,0.0,0.0,0
+CMN,11,rough,0.0917,Drizzle,34.9,0.5,0.0,1
+CMN,12,calm,0.9642,Partly cloudy,14.8,0.0,0.0,0
+CMN,12,rough,0.0349,Drizzle,25.9,0.8,0.0,1
+CMN,12,severe,0.0009,Rain + strong wind,61.2,6.6,0.0,1
+DJE,1,calm,0.7643,Clear,25.6,0.0,0.0,0
+DJE,1,rough,0.2294,Strong wind,45.7,0.0,0.0,1
+DJE,1,severe,0.0063,Gale-force wind,65.5,0.0,0.0,1
+DJE,2,calm,0.774,Overcast,23.4,0.0,0.0,0
+DJE,2,rough,0.2201,Strong wind,46.4,0.0,0.0,1
+DJE,2,severe,0.0059,Gale-force wind,64.8,0.0,0.0,1
+DJE,3,calm,0.7446,Clear,25.9,0.0,0.0,0
+DJE,3,rough,0.2236,Strong wind,46.8,0.0,0.0,1
+DJE,3,severe,0.0318,Gale-force wind,68.0,0.0,0.0,1
+DJE,4,calm,0.7019,Clear,27.4,0.0,0.0,0
+DJE,4,rough,0.2847,Strong wind,47.9,0.0,0.0,1
+DJE,4,severe,0.0134,Drizzle + strong wind,71.3,0.1,0.0,1
+DJE,5,calm,0.7079,Clear,27.7,0.0,0.0,0
+DJE,5,rough,0.2778,Strong wind,46.8,0.0,0.0,1
+DJE,5,severe,0.0143,Gale-force wind,64.4,0.0,0.0,1
+DJE,6,calm,0.8125,Clear,27.4,0.0,0.0,0
+DJE,6,rough,0.1806,Strong wind,45.4,0.0,0.0,1
+DJE,6,severe,0.0069,Gale-force wind,66.2,0.0,0.0,1
+DJE,7,calm,0.8575,Clear,26.6,0.0,0.0,0
+DJE,7,rough,0.1371,Strong wind,44.6,0.0,0.0,1
+DJE,7,severe,0.0054,Gale-force wind,64.8,0.0,0.0,1
+DJE,8,calm,0.9386,Clear,25.6,0.0,0.0,0
+DJE,8,rough,0.0614,Strong wind,43.6,0.0,0.0,1
+DJE,9,calm,0.8606,Clear,25.6,0.0,0.0,0
+DJE,9,rough,0.1306,Strong wind,46.1,0.0,0.0,1
+DJE,9,severe,0.0088,Gale-force wind,66.6,0.0,0.0,1
+DJE,10,calm,0.8454,Overcast,22.3,0.0,0.0,0
+DJE,10,rough,0.1452,Strong wind,45.4,0.0,0.0,1
+DJE,10,severe,0.0094,Gale-force wind,71.3,0.0,0.0,1
+DJE,11,calm,0.7949,Clear,22.7,0.0,0.0,0
+DJE,11,rough,0.1866,Strong wind,46.4,0.0,0.0,1
+DJE,11,severe,0.0185,Drizzle + strong wind,67.0,1.2,0.0,1
+DJE,12,calm,0.8145,Overcast,24.5,0.0,0.0,0
+DJE,12,rough,0.1841,Strong wind,45.7,0.0,0.0,1
+DJE,12,severe,0.0013,Gale-force wind,66.2,0.0,0.0,1
+FCO,1,calm,0.7917,Partly cloudy,20.2,0.0,0.0,0
+FCO,1,rough,0.1846,Drizzle,27.4,0.6,0.0,1
+FCO,1,severe,0.0237,Gale-force wind,66.2,0.0,0.0,1
+FCO,2,calm,0.7657,Overcast,21.6,0.0,0.0,0
+FCO,2,rough,0.2137,Drizzle,34.2,0.6,0.0,1
+FCO,2,severe,0.0206,Drizzle + strong wind,72.4,0.6,0.0,1
+FCO,3,calm,0.7487,Partly cloudy,21.2,0.0,0.0,0
+FCO,3,rough,0.2298,Strong wind,53.6,0.0,0.0,1
+FCO,3,severe,0.0215,Drizzle + strong wind,63.4,0.3,0.0,1
+FCO,4,calm,0.8435,Overcast,19.4,0.0,0.0,0
+FCO,4,rough,0.15,Strong wind,48.6,0.0,0.0,1
+FCO,4,severe,0.0065,Drizzle + strong wind,64.1,0.4,0.0,1
+FCO,5,calm,0.8696,Partly cloudy,19.8,0.0,0.0,0
+FCO,5,rough,0.1295,Strong wind,48.6,0.0,0.0,1
+FCO,5,severe,0.0009,Rain,38.5,6.8,0.0,1
+FCO,6,calm,0.9153,Clear,19.1,0.0,0.0,0
+FCO,6,rough,0.0815,Strong wind,46.1,0.0,0.0,1
+FCO,6,severe,0.0032,Gale-force wind,64.1,0.0,0.0,1
+FCO,7,calm,0.9001,Clear,19.1,0.0,0.0,0
+FCO,7,rough,0.0995,Strong wind,46.1,0.0,0.0,1
+FCO,7,severe,0.0004,Rain + strong wind,41.8,7.4,0.0,1
+FCO,8,calm,0.927,Partly cloudy,19.4,0.0,0.0,0
+FCO,8,rough,0.0721,Strong wind,44.3,0.0,0.0,1
+FCO,8,severe,0.0009,Gale-force wind,62.6,0.0,0.0,1
+FCO,9,calm,0.8866,Overcast,18.4,0.0,0.0,0
+FCO,9,rough,0.1079,Drizzle + strong wind,45.7,0.2,0.0,1
+FCO,9,severe,0.0056,Heavy rain,14.8,8.3,0.0,1
+FCO,10,calm,0.8253,Partly cloudy,18.7,0.0,0.0,0
+FCO,10,rough,0.1478,Strong wind,52.6,0.0,0.0,1
+FCO,10,severe,0.0269,Light rain + strong wind,64.4,1.4,0.0,1
+FCO,11,calm,0.7903,Overcast,20.5,0.0,0.0,0
+FCO,11,rough,0.1949,Strong wind,55.8,0.0,0.0,1
+FCO,11,severe,0.0148,Rain + strong wind,46.4,5.2,0.0,1
+FCO,12,calm,0.8687,Partly cloudy,17.6,0.0,0.0,0
+FCO,12,rough,0.1093,Drizzle,29.9,0.6,0.0,1
+FCO,12,severe,0.022,Gale-force wind,70.2,0.0,0.0,1
+FRA,1,calm,0.7755,Partly cloudy,19.4,0.0,0.0,0
+FRA,1,rough,0.2074,Strong wind,51.1,0.0,0.0,1
+FRA,1,severe,0.017,Drizzle + strong wind,87.8,0.1,0.0,1
+FRA,2,calm,0.7779,Overcast,21.2,0.0,0.0,0
+FRA,2,rough,0.2029,Strong wind,52.9,0.0,0.0,1
+FRA,2,severe,0.0191,Drizzle + strong wind,63.0,0.4,0.0,1
+FRA,3,calm,0.8262,Overcast,21.2,0.0,0.0,0
+FRA,3,rough,0.168,Strong wind,50.8,0.0,0.0,1
+FRA,3,severe,0.0058,Drizzle + strong wind,65.5,0.5,0.0,1
+FRA,4,calm,0.8773,Overcast,19.1,0.0,0.0,0
+FRA,4,rough,0.1208,Drizzle + strong wind,43.6,0.2,0.0,1
+FRA,4,severe,0.0019,Gale-force wind,67.0,0.0,0.0,1
+FRA,5,calm,0.8826,Clear,20.5,0.0,0.0,0
+FRA,5,rough,0.1174,Drizzle,29.9,0.5,0.0,1
+FRA,6,calm,0.8681,Overcast,20.5,0.0,0.0,0
+FRA,6,rough,0.1282,Drizzle + strong wind,46.4,0.1,0.0,1
+FRA,6,severe,0.0037,Gale-force wind,69.8,0.0,0.0,1
+FRA,7,calm,0.9153,Partly cloudy,19.1,0.0,0.0,0
+FRA,7,rough,0.0833,Drizzle + strong wind,43.9,0.2,0.0,1
+FRA,7,severe,0.0013,Rain,24.1,5.5,0.0,1
+FRA,8,calm,0.9135,Overcast,18.7,0.0,0.0,0
+FRA,8,rough,0.0851,Drizzle,10.1,1.1,0.0,1
+FRA,8,severe,0.0013,Heavy rain,18.7,11.2,0.0,1
+FRA,9,calm,0.9111,Clear,15.8,0.0,0.0,0
+FRA,9,rough,0.0815,Strong wind,51.1,0.0,0.0,1
+FRA,9,severe,0.0074,Drizzle + strong wind,63.0,0.3,0.0,1
+FRA,10,calm,0.8831,Overcast,17.3,0.0,0.0,0
+FRA,10,rough,0.1129,Strong wind,47.5,0.0,0.0,1
+FRA,10,severe,0.004,Drizzle + strong wind,67.0,0.1,0.0,1
+FRA,11,calm,0.8796,Overcast,18.7,0.0,0.0,0
+FRA,11,rough,0.1181,Strong wind,50.8,0.0,0.0,1
+FRA,11,severe,0.0023,Drizzle + strong wind,76.7,0.7,0.0,1
+FRA,12,calm,0.8351,Overcast,18.4,0.0,0.0,0
+FRA,12,rough,0.1586,Drizzle,31.7,0.6,0.0,1
+FRA,12,severe,0.0063,Drizzle + strong wind,69.8,0.7,0.0,1
+IST,1,calm,0.6465,Drizzle,8.6,0.4,0.0,0
+IST,1,rough,0.3038,Snow,15.5,0.4,0.28,1
+IST,1,severe,0.0497,Drizzle + strong wind,69.1,0.5,0.0,1
+IST,2,calm,0.6265,Clear,25.6,0.0,0.0,0
+IST,2,rough,0.3206,Strong wind,50.0,0.0,0.0,1
+IST,2,severe,0.0529,Gale-force wind,70.9,0.0,0.0,1
+IST,3,calm,0.7186,Drizzle,21.2,0.1,0.0,0
+IST,3,rough,0.2616,Drizzle + strong wind,41.8,0.2,0.0,1
+IST,3,severe,0.0197,Drizzle + strong wind,69.8,0.1,0.0,1
+IST,4,calm,0.881,Clear,21.2,0.0,0.0,0
+IST,4,rough,0.1162,Drizzle + strong wind,42.5,0.1,0.0,1
+IST,4,severe,0.0028,Drizzle + strong wind,63.7,0.8,0.0,1
+IST,5,calm,0.8132,Overcast,24.5,0.0,0.0,0
+IST,5,rough,0.1828,Drizzle + strong wind,45.4,0.1,0.0,1
+IST,5,severe,0.004,Rain,31.7,5.7,0.0,1
+IST,6,calm,0.8208,Clear,23.4,0.0,0.0,0
+IST,6,rough,0.1755,Strong wind,48.2,0.0,0.0,1
+IST,6,severe,0.0037,Rain,25.9,5.8,0.0,1
+IST,7,calm,0.7737,Partly cloudy,24.8,0.0,0.0,0
+IST,7,rough,0.2151,Strong wind,48.2,0.0,0.0,1
+IST,7,severe,0.0112,Drizzle + strong wind,63.7,0.2,0.0,1
+IST,8,calm,0.578,Drizzle,21.6,0.2,0.0,0
+IST,8,rough,0.4167,Strong wind,49.0,0.0,0.0,1
+IST,8,severe,0.0054,Drizzle + strong wind,63.4,0.5,0.0,1
+IST,9,calm,0.7324,Clear,24.1,0.0,0.0,0
+IST,9,rough,0.2532,Strong wind,50.0,0.0,0.0,1
+IST,9,severe,0.0144,Drizzle + strong wind,67.7,0.2,0.0,1
+IST,10,calm,0.8141,Clear,24.1,0.0,0.0,0
+IST,10,rough,0.1801,Drizzle + strong wind,42.8,0.2,0.0,1
+IST,10,severe,0.0058,Gale-force wind,68.0,0.0,0.0,1
+IST,11,calm,0.731,Clear,24.1,0.0,0.0,0
+IST,11,rough,0.2431,Strong wind,52.6,0.0,0.0,1
+IST,11,severe,0.0259,Drizzle + strong wind,65.9,0.3,0.0,1
+IST,12,calm,0.6819,Partly cloudy,25.6,0.0,0.0,0
+IST,12,rough,0.2693,Strong wind,56.2,0.0,0.0,1
+IST,12,severe,0.0488,Light snow + strong wind,77.4,0.6,0.07,1
+LYS,1,calm,0.8168,Partly cloudy,15.8,0.0,0.0,0
+LYS,1,rough,0.1783,Drizzle,29.5,0.6,0.0,1
+LYS,1,severe,0.0049,Drizzle + strong wind,65.2,0.3,0.0,1
+LYS,2,calm,0.8211,Partly cloudy,15.8,0.0,0.0,0
+LYS,2,rough,0.1588,Strong wind,50.8,0.0,0.0,1
+LYS,2,severe,0.0201,Gale-force wind,73.8,0.0,0.0,1
+LYS,3,calm,0.8011,Overcast,18.4,0.0,0.0,0
+LYS,3,rough,0.185,Strong wind,50.8,0.0,0.0,1
+LYS,3,severe,0.0139,Gale-force wind,69.5,0.0,0.0,1
+LYS,4,calm,0.8185,Drizzle,7.6,0.3,0.0,0
+LYS,4,rough,0.1769,Strong wind,50.8,0.0,0.0,1
+LYS,4,severe,0.0046,Gale-force wind,64.4,0.0,0.0,1
+LYS,5,calm,0.8109,Partly cloudy,19.4,0.0,0.0,0
+LYS,5,rough,0.1864,Strong wind,51.1,0.0,0.0,1
+LYS,5,severe,0.0027,Gale-force wind,72.7,0.0,0.0,1
+LYS,6,calm,0.8764,Overcast,18.4,0.0,0.0,0
+LYS,6,rough,0.1231,Strong wind,47.2,0.0,0.0,1
+LYS,6,severe,0.0005,Heavy rain,33.5,7.6,0.0,1
+LYS,7,calm,0.8911,Overcast,18.7,0.0,0.0,0
+LYS,7,rough,0.108,Strong wind,44.6,0.0,0.0,1
+LYS,7,severe,0.0009,Rain,24.5,5.5,0.0,1
+LYS,8,calm,0.9059,Partly cloudy,19.1,0.0,0.0,0
+LYS,8,rough,0.0918,Strong wind,47.9,0.0,0.0,1
+LYS,8,severe,0.0022,Rain,37.1,6.7,0.0,1
+LYS,9,calm,0.9167,Clear,16.2,0.0,0.0,0
+LYS,9,rough,0.0801,Strong wind,47.2,0.0,0.0,1
+LYS,9,severe,0.0032,Gale-force wind,65.5,0.0,0.0,1
+LYS,10,calm,0.8965,Clear,15.1,0.0,0.0,0
+LYS,10,rough,0.1026,Drizzle,14.4,0.9,0.0,1
+LYS,10,severe,0.0009,Drizzle + strong wind,62.6,0.1,0.0,1
+LYS,11,calm,0.7907,Partly cloudy,13.7,0.0,0.0,0
+LYS,11,rough,0.1907,Drizzle,19.8,0.8,0.0,1
+LYS,11,severe,0.0185,Drizzle + strong wind,67.7,0.2,0.0,1
+LYS,12,calm,0.8719,Clear,12.6,0.0,0.0,0
+LYS,12,rough,0.1111,Drizzle,20.5,0.9,0.0,1
+LYS,12,severe,0.017,Drizzle + strong wind,78.1,0.2,0.0,1
+MIR,1,calm,0.8378,Partly cloudy,21.6,0.0,0.0,0
+MIR,1,rough,0.1411,Strong wind,48.2,0.0,0.0,1
+MIR,1,severe,0.0211,Gale-force wind,68.4,0.0,0.0,1
+MIR,2,calm,0.8147,Clear,24.8,0.0,0.0,0
+MIR,2,rough,0.1809,Strong wind,46.1,0.0,0.0,1
+MIR,2,severe,0.0044,Drizzle + strong wind,64.8,0.1,0.0,1
+MIR,3,calm,0.776,Overcast,25.6,0.0,0.0,0
+MIR,3,rough,0.2007,Strong wind,47.9,0.0,0.0,1
+MIR,3,severe,0.0233,Gale-force wind,74.2,0.0,0.0,1
+MIR,4,calm,0.806,Clear,25.9,0.0,0.0,0
+MIR,4,rough,0.1898,Strong wind,45.4,0.0,0.0,1
+MIR,4,severe,0.0042,Gale-force wind,64.4,0.0,0.0,1
+MIR,5,calm,0.8091,Overcast,26.6,0.0,0.0,0
+MIR,5,rough,0.1801,Strong wind,45.4,0.0,0.0,1
+MIR,5,severe,0.0108,Drizzle + strong wind,67.0,0.1,0.0,1
+MIR,6,calm,0.831,Clear,25.2,0.0,0.0,0
+MIR,6,rough,0.1681,Strong wind,44.3,0.0,0.0,1
+MIR,6,severe,0.0009,Gale-force wind,73.1,0.0,0.0,1
+MIR,7,calm,0.849,Partly cloudy,24.8,0.0,0.0,0
+MIR,7,rough,0.151,Strong wind,45.7,0.0,0.0,1
+MIR,8,calm,0.8996,Clear,23.0,0.0,0.0,0
+MIR,8,rough,0.0999,Strong wind,44.6,0.0,0.0,1
+MIR,8,severe,0.0004,Rain,23.8,5.0,0.0,1
+MIR,9,calm,0.8384,Clear,23.8,0.0,0.0,0
+MIR,9,rough,0.1588,Drizzle,28.1,0.5,0.0,1
+MIR,9,severe,0.0028,Rain,23.8,5.1,0.0,1
+MIR,10,calm,0.8499,Overcast,20.5,0.0,0.0,0
+MIR,10,rough,0.1384,Drizzle,27.0,0.6,0.0,1
+MIR,10,severe,0.0116,Drizzle + strong wind,71.6,0.2,0.0,1
+MIR,11,calm,0.8171,Overcast,22.3,0.0,0.0,0
+MIR,11,rough,0.1764,Strong wind,49.7,0.0,0.0,1
+MIR,11,severe,0.0065,Gale-force wind,64.8,0.0,0.0,1
+MIR,12,calm,0.8015,Clear,21.6,0.0,0.0,0
+MIR,12,rough,0.1859,Strong wind,49.0,0.0,0.0,1
+MIR,12,severe,0.0125,Gale-force wind,66.2,0.0,0.0,1
+MRS,1,calm,0.6478,Clear,21.6,0.0,0.0,0
+MRS,1,rough,0.2531,Strong wind,50.8,0.0,0.0,1
+MRS,1,severe,0.099,Gale-force wind,70.9,0.0,0.0,1
+MRS,2,calm,0.6137,Overcast,24.8,0.0,0.0,0
+MRS,2,rough,0.2931,Strong wind,51.8,0.0,0.0,1
+MRS,2,severe,0.0931,Drizzle + strong wind,66.2,0.1,0.0,1
+MRS,3,calm,0.6039,Partly cloudy,22.0,0.0,0.0,0
+MRS,3,rough,0.297,Strong wind,51.1,0.0,0.0,1
+MRS,3,severe,0.099,Gale-force wind,72.7,0.0,0.0,1
+MRS,4,calm,0.5931,Overcast,24.8,0.0,0.0,0
+MRS,4,rough,0.3222,Strong wind,51.5,0.0,0.0,1
+MRS,4,severe,0.0847,Gale-force wind,69.8,0.0,0.0,1
+MRS,5,calm,0.647,Clear,23.0,0.0,0.0,0
+MRS,5,rough,0.2854,Strong wind,50.0,0.0,0.0,1
+MRS,5,severe,0.0677,Gale-force wind,69.5,0.0,0.0,1
+MRS,6,calm,0.7463,Partly cloudy,24.5,0.0,0.0,0
+MRS,6,rough,0.2134,Drizzle,20.9,0.7,0.0,1
+MRS,6,severe,0.0403,Gale-force wind,70.6,0.0,0.0,1
+MRS,7,calm,0.6931,Clear,23.0,0.0,0.0,0
+MRS,7,rough,0.2339,Strong wind,47.5,0.0,0.0,1
+MRS,7,severe,0.073,Gale-force wind,68.8,0.0,0.0,1
+MRS,8,calm,0.7518,Clear,21.6,0.0,0.0,0
+MRS,8,rough,0.1756,Strong wind,49.0,0.0,0.0,1
+MRS,8,severe,0.0726,Gale-force wind,67.7,0.0,0.0,1
+MRS,9,calm,0.7602,Partly cloudy,19.1,0.0,0.0,0
+MRS,9,rough,0.1676,Strong wind,49.7,0.0,0.0,1
+MRS,9,severe,0.0722,Gale-force wind,69.8,0.0,0.0,1
+MRS,10,calm,0.7133,Overcast,19.8,0.0,0.0,0
+MRS,10,rough,0.1949,Strong wind,49.7,0.0,0.0,1
+MRS,10,severe,0.0918,Gale-force wind,79.2,0.0,0.0,1
+MRS,11,calm,0.6394,Drizzle,18.7,0.1,0.0,0
+MRS,11,rough,0.2653,Strong wind,52.6,0.0,0.0,1
+MRS,11,severe,0.0954,Gale-force wind,77.8,0.0,0.0,1
+MRS,12,calm,0.7451,Clear,20.2,0.0,0.0,0
+MRS,12,rough,0.1891,Drizzle + strong wind,46.1,0.1,0.0,1
+MRS,12,severe,0.0659,Gale-force wind,69.5,0.0,0.0,1
+MXP,1,calm,0.9211,Overcast,13.0,0.0,0.0,0
+MXP,1,rough,0.073,Drizzle + strong wind,45.0,0.2,0.0,1
+MXP,1,severe,0.0058,Gale-force wind,75.2,0.0,0.0,1
+MXP,2,calm,0.877,Clear,14.0,0.0,0.0,0
+MXP,2,rough,0.123,Light snow,12.6,0.8,0.07,1
+MXP,3,calm,0.879,Clear,15.8,0.0,0.0,0
+MXP,3,rough,0.1147,Drizzle,30.6,0.7,0.0,1
+MXP,3,severe,0.0063,Heavy snow,23.4,3.5,1.19,1
+MXP,4,calm,0.8458,Overcast,17.3,0.0,0.0,0
+MXP,4,rough,0.1486,Strong wind,51.8,0.0,0.0,1
+MXP,4,severe,0.0056,Gale-force wind,83.2,0.0,0.0,1
+MXP,5,calm,0.8383,Drizzle,13.3,0.1,0.0,0
+MXP,5,rough,0.1591,Drizzle,37.4,0.6,0.0,1
+MXP,5,severe,0.0027,Rain + strong wind,43.9,5.0,0.0,1
+MXP,6,calm,0.8782,Clear,15.8,0.0,0.0,0
+MXP,6,rough,0.1144,Drizzle + strong wind,45.0,0.5,0.0,1
+MXP,6,severe,0.0074,Rain,33.5,6.2,0.0,1
+MXP,7,calm,0.9082,Partly cloudy,15.1,0.0,0.0,0
+MXP,7,rough,0.086,Drizzle,25.6,1.0,0.0,1
+MXP,7,severe,0.0058,Heavy rain,38.5,7.9,0.0,1
+MXP,8,calm,0.9167,Partly cloudy,16.2,0.0,0.0,0
+MXP,8,rough,0.0793,Drizzle,29.2,0.7,0.0,1
+MXP,8,severe,0.004,Heavy rain,26.3,8.7,0.0,1
+MXP,9,calm,0.9213,Partly cloudy,14.4,0.0,0.0,0
+MXP,9,rough,0.075,Strong wind,50.0,0.0,0.0,1
+MXP,9,severe,0.0037,Gale-force wind,70.2,0.0,0.0,1
+MXP,10,calm,0.8808,Clear,13.3,0.0,0.0,0
+MXP,10,rough,0.1075,Drizzle,11.2,1.2,0.0,1
+MXP,10,severe,0.0116,Light rain + strong wind,65.2,1.7,0.0,1
+MXP,11,calm,0.8269,Overcast,12.6,0.0,0.0,0
+MXP,11,rough,0.1648,Strong wind,60.1,0.0,0.0,1
+MXP,11,severe,0.0083,Rain,26.6,5.8,0.0,1
+MXP,12,calm,0.9386,Partly cloudy,12.2,0.0,0.0,0
+MXP,12,rough,0.0614,Strong wind,52.2,0.0,0.0,1
+NCE,1,calm,0.858,Partly cloudy,19.1,0.0,0.0,0
+NCE,1,rough,0.1344,Strong wind,51.5,0.0,0.0,1
+NCE,1,severe,0.0076,Drizzle + strong wind,66.2,0.2,0.0,1
+NCE,2,calm,0.8471,Clear,18.7,0.0,0.0,0
+NCE,2,rough,0.1495,Strong wind,54.7,0.0,0.0,1
+NCE,2,severe,0.0034,Snow + strong wind,70.6,1.9,0.28,1
+NCE,3,calm,0.8459,Partly cloudy,19.1,0.0,0.0,0
+NCE,3,rough,0.1461,Strong wind,56.5,0.0,0.0,1
+NCE,3,severe,0.0081,Gale-force wind,71.3,0.0,0.0,1
+NCE,4,calm,0.9032,Clear,19.1,0.0,0.0,0
+NCE,4,rough,0.0921,Drizzle + strong wind,47.5,0.2,0.0,1
+NCE,4,severe,0.0046,Drizzle + strong wind,69.1,0.1,0.0,1
+NCE,5,calm,0.9023,Clear,19.1,0.0,0.0,0
+NCE,5,rough,0.0972,Strong wind,50.4,0.0,0.0,1
+NCE,5,severe,0.0004,Gale-force wind,62.3,0.0,0.0,1
+NCE,6,calm,0.9319,Overcast,16.9,0.0,0.0,0
+NCE,6,rough,0.0648,Drizzle,17.6,0.8,0.0,1
+NCE,6,severe,0.0032,Gale-force wind,65.9,0.0,0.0,1
+NCE,7,calm,0.974,Partly cloudy,17.3,0.0,0.0,0
+NCE,7,rough,0.0242,Strong wind,48.2,0.0,0.0,1
+NCE,7,severe,0.0018,Gale-force wind,63.0,0.0,0.0,1
+NCE,8,calm,0.9843,Drizzle,13.3,0.1,0.0,0
+NCE,8,rough,0.0148,Drizzle,18.4,0.8,0.0,1
+NCE,8,severe,0.0009,Gale-force wind,65.5,0.0,0.0,1
+NCE,9,calm,0.9514,Partly cloudy,16.9,0.0,0.0,0
+NCE,9,rough,0.0454,Strong wind,54.0,0.0,0.0,1
+NCE,9,severe,0.0032,Rain,32.0,6.8,0.0,1
+NCE,10,calm,0.9028,Drizzle,13.3,0.1,0.0,0
+NCE,10,rough,0.0896,Drizzle + strong wind,47.5,0.2,0.0,1
+NCE,10,severe,0.0076,Rain + strong wind,55.8,5.3,0.0,1
+NCE,11,calm,0.8463,Partly cloudy,18.4,0.0,0.0,0
+NCE,11,rough,0.1468,Drizzle,30.6,0.9,0.0,1
+NCE,11,severe,0.0069,Rain + strong wind,45.0,5.7,0.0,1
+NCE,12,calm,0.8996,Partly cloudy,16.6,0.0,0.0,0
+NCE,12,rough,0.0865,Strong wind,50.0,0.0,0.0,1
+NCE,12,severe,0.0139,Snow + strong wind,69.1,1.4,0.21,1
+ORY,1,calm,0.7195,Overcast,22.3,0.0,0.0,0
+ORY,1,rough,0.2442,Drizzle + strong wind,47.9,0.1,0.0,1
+ORY,1,severe,0.0363,Drizzle + strong wind,67.7,0.3,0.0,1
+ORY,2,calm,0.7132,Overcast,25.6,0.0,0.0,0
+ORY,2,rough,0.2632,Strong wind,49.0,0.0,0.0,1
+ORY,2,severe,0.0235,Drizzle + strong wind,81.4,0.3,0.0,1
+ORY,3,calm,0.7455,Overcast,25.2,0.0,0.0,0
+ORY,3,rough,0.2415,Drizzle + strong wind,47.5,0.1,0.0,1
+ORY,3,severe,0.013,Drizzle + strong wind,72.7,0.2,0.0,1
+ORY,4,calm,0.8523,Partly cloudy,22.0,0.0,0.0,0
+ORY,4,rough,0.1463,Strong wind,49.7,0.0,0.0,1
+ORY,4,severe,0.0014,Drizzle + strong wind,63.0,1.0,0.0,1
+ORY,5,calm,0.8804,Partly cloudy,23.4,0.0,0.0,0
+ORY,5,rough,0.1192,Strong wind,54.7,0.0,0.0,1
+ORY,5,severe,0.0004,Drizzle + strong wind,62.3,0.2,0.0,1
+ORY,6,calm,0.8894,Overcast,22.7,0.0,0.0,0
+ORY,6,rough,0.1056,Drizzle + strong wind,40.3,0.3,0.0,1
+ORY,6,severe,0.0051,Drizzle + strong wind,66.2,0.1,0.0,1
+ORY,7,calm,0.9019,Drizzle,17.3,0.1,0.0,0
+ORY,7,rough,0.0972,Drizzle + strong wind,43.9,0.1,0.0,1
+ORY,7,severe,0.0009,Rain,19.1,5.7,0.0,1
+ORY,8,calm,0.9028,Overcast,20.9,0.0,0.0,0
+ORY,8,rough,0.0954,Strong wind,46.8,0.0,0.0,1
+ORY,8,severe,0.0018,Heavy rain,30.6,7.7,0.0,1
+ORY,9,calm,0.8921,Partly cloudy,19.1,0.0,0.0,0
+ORY,9,rough,0.0995,Strong wind,50.8,0.0,0.0,1
+ORY,9,severe,0.0083,Gale-force wind,77.8,0.0,0.0,1
+ORY,10,calm,0.8719,Clear,21.6,0.0,0.0,0
+ORY,10,rough,0.1263,Strong wind,48.2,0.0,0.0,1
+ORY,10,severe,0.0018,Gale-force wind,67.3,0.0,0.0,1
+ORY,11,calm,0.8069,Partly cloudy,21.6,0.0,0.0,0
+ORY,11,rough,0.1787,Strong wind,50.4,0.0,0.0,1
+ORY,11,severe,0.0144,Drizzle + strong wind,66.6,0.1,0.0,1
+ORY,12,calm,0.7858,Overcast,19.1,0.0,0.0,0
+ORY,12,rough,0.1815,Strong wind,53.3,0.0,0.0,1
+ORY,12,severe,0.0327,Drizzle + strong wind,67.3,0.2,0.0,1
+TOE,1,calm,0.961,Overcast,16.6,0.0,0.0,0
+TOE,1,rough,0.0372,Strong wind,45.0,0.0,0.0,1
+TOE,1,severe,0.0018,Gale-force wind,66.6,0.0,0.0,1
+TOE,2,calm,0.8995,Clear,18.4,0.0,0.0,0
+TOE,2,rough,0.0917,Strong wind,46.1,0.0,0.0,1
+TOE,2,severe,0.0088,Gale-force wind,68.0,0.0,0.0,1
+TOE,3,calm,0.8459,Clear,20.9,0.0,0.0,0
+TOE,3,rough,0.1375,Strong wind,48.6,0.0,0.0,1
+TOE,3,severe,0.0166,Gale-force wind,68.0,0.0,0.0,1
+TOE,4,calm,0.731,Clear,24.8,0.0,0.0,0
+TOE,4,rough,0.2491,Strong wind,46.8,0.0,0.0,1
+TOE,4,severe,0.0199,Gale-force wind,67.0,0.0,0.0,1
+TOE,5,calm,0.694,Overcast,26.3,0.0,0.0,0
+TOE,5,rough,0.2908,Strong wind,47.5,0.0,0.0,1
+TOE,5,severe,0.0152,Gale-force wind,65.9,0.0,0.0,1
+TOE,6,calm,0.7944,Clear,26.3,0.0,0.0,0
+TOE,6,rough,0.1907,Strong wind,45.0,0.0,0.0,1
+TOE,6,severe,0.0148,Gale-force wind,73.1,0.0,0.0,1
+TOE,7,calm,0.8535,Clear,25.6,0.0,0.0,0
+TOE,7,rough,0.1443,Strong wind,43.9,0.0,0.0,1
+TOE,7,severe,0.0022,Gale-force wind,64.1,0.0,0.0,1
+TOE,8,calm,0.8916,Clear,23.8,0.0,0.0,0
+TOE,8,rough,0.1084,Drizzle + strong wind,41.4,0.1,0.0,1
+TOE,9,calm,0.8931,Partly cloudy,23.8,0.0,0.0,0
+TOE,9,rough,0.1056,Strong wind,46.4,0.0,0.0,1
+TOE,9,severe,0.0014,Gale-force wind,64.8,0.0,0.0,1
+TOE,10,calm,0.9453,Overcast,18.4,0.0,0.0,0
+TOE,10,rough,0.0538,Strong wind,45.4,0.0,0.0,1
+TOE,10,severe,0.0009,Gale-force wind,64.8,0.0,0.0,1
+TOE,11,calm,0.9435,Clear,16.9,0.0,0.0,0
+TOE,11,rough,0.0565,Strong wind,46.8,0.0,0.0,1
+TOE,12,calm,0.9462,Partly cloudy,16.6,0.0,0.0,0
+TOE,12,rough,0.0538,Strong wind,45.0,0.0,0.0,1
+TUN,1,calm,0.7724,Clear,19.8,0.0,0.0,0
+TUN,1,rough,0.1913,Strong wind,51.1,0.0,0.0,1
+TUN,1,severe,0.0363,Drizzle + strong wind,65.2,0.1,0.0,1
+TUN,2,calm,0.7971,Clear,23.0,0.0,0.0,0
+TUN,2,rough,0.1863,Strong wind,48.2,0.0,0.0,1
+TUN,2,severe,0.0167,Drizzle + strong wind,63.0,0.2,0.0,1
+TUN,3,calm,0.7455,Partly cloudy,22.7,0.0,0.0,0
+TUN,3,rough,0.2159,Strong wind,49.7,0.0,0.0,1
+TUN,3,severe,0.0385,Gale-force wind,70.2,0.0,0.0,1
+TUN,4,calm,0.8389,Overcast,24.8,0.0,0.0,0
+TUN,4,rough,0.1537,Strong wind,47.9,0.0,0.0,1
+TUN,4,severe,0.0074,Gale-force wind,65.5,0.0,0.0,1
+TUN,5,calm,0.7997,Clear,24.1,0.0,0.0,0
+TUN,5,rough,0.1743,Strong wind,45.4,0.0,0.0,1
+TUN,5,severe,0.026,Drizzle + strong wind,66.6,0.4,0.0,1
+TUN,6,calm,0.8481,Partly cloudy,22.7,0.0,0.0,0
+TUN,6,rough,0.1463,Strong wind,45.0,0.0,0.0,1
+TUN,6,severe,0.0056,Gale-force wind,73.4,0.0,0.0,1
+TUN,7,calm,0.8522,Clear,22.7,0.0,0.0,0
+TUN,7,rough,0.1447,Strong wind,45.7,0.0,0.0,1
+TUN,7,severe,0.0031,Gale-force wind,65.9,0.0,0.0,1
+TUN,8,calm,0.8956,Clear,20.9,0.0,0.0,0
+TUN,8,rough,0.1044,Strong wind,43.9,0.0,0.0,1
+TUN,9,calm,0.8731,Clear,21.2,0.0,0.0,0
+TUN,9,rough,0.1241,Strong wind,48.2,0.0,0.0,1
+TUN,9,severe,0.0028,Gale-force wind,66.2,0.0,0.0,1
+TUN,10,calm,0.8557,Partly cloudy,19.8,0.0,0.0,0
+TUN,10,rough,0.1358,Strong wind,50.0,0.0,0.0,1
+TUN,10,severe,0.0085,Gale-force wind,70.9,0.0,0.0,1
+TUN,11,calm,0.8514,Partly cloudy,20.5,0.0,0.0,0
+TUN,11,rough,0.1384,Drizzle + strong wind,41.4,0.2,0.0,1
+TUN,11,severe,0.0102,Drizzle + strong wind,65.9,0.1,0.0,1
+TUN,12,calm,0.8293,Overcast,20.9,0.0,0.0,0
+TUN,12,rough,0.1635,Drizzle + strong wind,41.0,0.2,0.0,1
+TUN,12,severe,0.0072,Gale-force wind,67.3,0.0,0.0,1

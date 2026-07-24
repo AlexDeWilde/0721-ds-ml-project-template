@@ -118,6 +118,57 @@ def covered_airports():
     return {f.stem for f in CACHE_DIR.glob("*.parquet")}
 
 
+def band_of(gust, precip, snow, code):
+    """Three severity bands for the scenario ladder, by how disruptive the hour is."""
+    if int(code) in (95, 96, 99) or gust >= GUST_GALE or precip >= 5.0 or snow >= 1.0:
+        return "severe"
+    if is_adverse(gust, precip, snow, code):
+        return "rough"
+    return "calm"
+
+
+def build_scenario_table(wx=None):
+    """Per (airport, month) weather scenarios for the app's what-if ladder.
+
+    For each airport+month, split its historical hours into calm/rough/severe bands,
+    and for each band emit its empirical frequency, a representative (median-adversity)
+    set of weather values, and a human label. Returned tidy so it can be written to a
+    small CSV the app reads offline — the app never needs the raw weather again.
+    """
+    if wx is None:
+        wx = load_weather_cache()
+    w = wx.copy()
+    w["gust"] = w["wind_gusts_10m"].astype(float)
+    w["precip"] = w["precipitation"].astype(float)
+    w["snow"] = w["snowfall"].astype(float)
+    w["code"] = w["weather_code"].fillna(0).astype(int)
+    w["month"] = w["time"].dt.month
+    w["band"] = [band_of(g, p, s, c) for g, p, s, c in zip(w.gust, w.precip, w.snow, w.code)]
+
+    rows = []
+    for (airport, month), grp in w.groupby(["airport", "month"]):
+        for band in ("calm", "rough", "severe"):
+            b = grp[grp["band"] == band]
+            if b.empty:
+                continue
+            adv = [adversity_index(g, p, s, c) for g, p, s, c in zip(b.gust, b.precip, b.snow, b.code)]
+            adv = pd.Series(adv, index=b.index)
+            rep = b.loc[(adv - adv.median()).abs().idxmin()]
+            rows.append({
+                "airport": airport, "month": int(month), "band": band,
+                "prob": round(len(b) / len(grp), 4),
+                "label": condition_name(rep.gust, rep.precip, rep.snow, rep.code),
+                "wx_wind_gust": round(float(rep.gust), 1),
+                "wx_precip": round(float(rep.precip), 2),
+                "wx_snow": round(float(rep.snow), 2),
+                "wx_adverse": is_adverse(rep.gust, rep.precip, rep.snow, rep.code),
+            })
+    out = pd.DataFrame(rows)
+    out["_ord"] = out["band"].map({"calm": 0, "rough": 1, "severe": 2})
+    out = out.sort_values(["airport", "month", "_ord"]).drop(columns="_ord")
+    return out.reset_index(drop=True)
+
+
 def attach_weather(flights, wx=None):
     """Add wx_* feature columns to flights (needs DEPSTN + STD). Rows whose departure
     airport is not in the cache get NaN weather (caller decides how to handle)."""

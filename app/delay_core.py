@@ -52,11 +52,19 @@ def load_bundle():
                .set_index("country_pair")["country_pair_freq"].to_dict())
     schedule = pd.read_csv(_REF / "flight_schedule.csv")
     delay_stats = pd.read_csv(_REF / "route_delay_stats.csv").set_index("route")
+    # Weather scenarios for the what-if ladder (roadmap #2); optional so the app still
+    # runs if the file is absent (e.g. an older build).
+    scen_path = _REF / "weather_scenarios.csv"
+    weather_scenarios = pd.read_csv(scen_path) if scen_path.exists() else pd.DataFrame()
     return {
         "model": bundle["model"], "features": bundle["features"],
         "risk_bands": bundle["risk_bands"], "holdout_rmse": bundle["holdout_rmse"],
         "baseline_rmse": bundle["baseline_rmse"], "route_freq": route_freq,
         "cp_freq": cp_freq, "schedule": schedule, "delay_stats": delay_stats,
+        "neutral_weather": bundle.get("neutral_weather", {}),
+        "weather_features": bundle.get("weather_features", []),
+        "weather_airports": set(bundle.get("weather_airports", [])),
+        "weather_scenarios": weather_scenarios,
     }
 
 
@@ -95,6 +103,9 @@ def make_features(dep, arr, date, hour, bundle):
         "route_freq": bundle["route_freq"].get(route, 0),
         "country_pair_freq": bundle["cp_freq"].get(country_pair, 0),
     }
+    # Weather features default to NEUTRAL "typical calm" — the headline prediction assumes
+    # an ordinary day. The weather ladder overrides these to ask the what-if questions.
+    row.update(bundle.get("neutral_weather", {}))
     return pd.DataFrame([row])[bundle["features"]]
 
 
@@ -125,6 +136,51 @@ def predict(dep, arr, date, hour, bundle):
     p25, p50, p75, n = expected_range(f"{dep}->{arr}", bundle)
     return {"pred_minutes": pred, "risk": label, "emoji": emoji,
             "p25": p25, "p50": p50, "p75": p75, "route_n": n}
+
+
+def weather_ladder(dep, arr, date, hour, bundle):
+    """A per-flight 'what if the weather is …' ladder for the departure airport.
+
+    At booking we can't know the weather, so instead of guessing we show how the SAME
+    flight is predicted to behave under each plausible, named weather scenario for this
+    airport+month (calm / rough / severe), with how often each occurs. Returns None when
+    the departure airport has no weather coverage (then the app simply omits the ladder).
+    """
+    if dep not in bundle.get("weather_airports", set()):
+        return None
+    scen = bundle["weather_scenarios"]
+    if scen.empty:
+        return None
+    month = pd.Timestamp(date).month
+    bands = scen[(scen["airport"] == dep) & (scen["month"] == month)]
+    if bands.empty:
+        return None
+
+    base_row = make_features(dep, arr, date, hour, bundle).iloc[0].to_dict()
+    wx_feats = bundle["weather_features"]
+    order = {"calm": 0, "rough": 1, "severe": 2}
+    rungs = []
+    for _, b in bands.sort_values("band", key=lambda s: s.map(order)).iterrows():
+        row = dict(base_row)
+        for f in wx_feats:
+            row[f] = b[f]
+        pred = float(bundle["model"].predict(pd.DataFrame([row])[bundle["features"]])[0])
+        rungs.append({"band": b["band"], "label": b["label"], "prob": float(b["prob"]),
+                      "raw_pred": pred})
+
+    # Honest weighted expectation uses the raw predictions...
+    weighted = sum(r["prob"] * r["raw_pred"] for r in rungs)
+    # ...but for DISPLAY, clamp so a more-severe rung never shows fewer minutes than a
+    # calmer one (random forests can wobble on a weak signal).
+    running = float("-inf")
+    for r in rungs:
+        running = max(running, r["raw_pred"])
+        r["pred_minutes"] = running
+        label, emoji = risk_category(running, bundle)
+        r["risk"], r["emoji"] = label, emoji
+    spread = rungs[-1]["pred_minutes"] - rungs[0]["pred_minutes"]
+    return {"rungs": rungs, "weighted": weighted, "spread": spread,
+            "sensitive": spread >= 5.0}
 
 
 def action_suggestions(risk):
