@@ -13,6 +13,7 @@ See RISK_CLASSIFIER_EXPERIMENT.md.
 from __future__ import annotations
 
 import functools
+import sys
 from pathlib import Path
 
 import airportsdata
@@ -24,6 +25,14 @@ from hijridate import Gregorian
 
 _REF = Path(__file__).parent / "reference"
 _MODEL_PATH = Path(__file__).parent.parent / "models" / "app_booking_model.joblib"
+
+# Optional: the shared weather helper (lets us show the ACTUAL recorded weather for a
+# historical date). Absent in a bare deploy -> the app just omits the corner icon.
+sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
+try:
+    import weather_core as _wc
+except Exception:  # noqa: BLE001
+    _wc = None
 
 AIRPORT_OVERRIDES = {"SXF": {"country": "DE", "lat": 52.3667, "lon": 13.5033, "tz": "Europe/Berlin"}}
 
@@ -190,6 +199,16 @@ def weather_ladder(dep, arr, date, hour, bundle):
         r["disp_q50"] = running
     spread = rungs[-1]["disp_q50"] - rungs[0]["disp_q50"]
     return {"rungs": rungs, "weighted": weighted, "spread": spread, "sensitive": spread >= 5.0}
+
+
+def actual_condition(dep, date, hour, bundle):
+    """The actual recorded departure weather for the chosen date+hour (historical data),
+    as {gust, precip, snow, code, label}. None for uncovered airports or non-historical
+    dates — the app then shows no weather icon."""
+    if _wc is None or dep not in bundle.get("weather_airports", set()):
+        return None
+    ts = pd.Timestamp(date) + pd.Timedelta(hours=int(hour))
+    return _wc.actual_weather(dep, ts)
 
 
 def action_suggestions(risk):

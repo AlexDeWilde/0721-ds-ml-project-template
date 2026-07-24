@@ -3,6 +3,7 @@
 Kept separate so the experiment script, a future app-build step, and the app itself
 all name weather the same way.
 """
+import functools
 from pathlib import Path
 
 import pandas as pd
@@ -116,6 +117,34 @@ def load_weather_cache():
 
 def covered_airports():
     return {f.stem for f in CACHE_DIR.glob("*.parquet")}
+
+
+@functools.lru_cache(maxsize=32)
+def _airport_hourly(airport):
+    """Cached hourly weather for one airport, indexed by local timestamp (or None)."""
+    p = CACHE_DIR / f"{airport}.parquet"
+    if not p.exists():
+        return None
+    df = pd.read_parquet(p)
+    df["time"] = pd.to_datetime(df["time"])
+    return df.set_index("time")
+
+
+def actual_weather(airport, ts):
+    """The ACTUAL recorded weather at an airport for a given local timestamp (floored to
+    the hour), with a human condition label. None if the airport/hour isn't in the cache
+    (e.g. an uncovered airport or a date outside 2016-2018). Historical demo data only."""
+    df = _airport_hourly(airport)
+    if df is None:
+        return None
+    hour = pd.Timestamp(ts).floor("h")
+    if hour not in df.index:
+        return None
+    r = df.loc[hour]
+    gust, precip = float(r["wind_gusts_10m"]), float(r["precipitation"])
+    snow, code = float(r["snowfall"]), int(r["weather_code"] or 0)
+    return {"gust": gust, "precip": precip, "snow": snow, "code": code,
+            "label": condition_name(gust, precip, snow, code)}
 
 
 def band_of(gust, precip, snow, code):
