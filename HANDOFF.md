@@ -2,8 +2,8 @@
 
 > **Purpose:** This document is a complete handoff of a Claude Code working session on `04_flight_delay_eda_modeling.ipynb`. It captures what was prompted, what was decided, what was built, the current project-board state, and exactly what to do next. Pull this repo, read this file top to bottom, and you can continue seamlessly in your own VS Code + Claude session.
 
-**Last updated:** 2026-07-24 (accuracy roadmap #1 & #2 prototyped; weather-sensitivity ladder shipped into the app; UI polish)
-**Working branch:** `sulu-flight-history-features` (accuracy work; merged to `main`)
+**Last updated:** 2026-07-24 (accuracy roadmap #1, #2 & #5; weather ladder + calibrated-classifier reframe shipped into the app)
+**Working branch:** `sulu-risk-classifier` (#5 reframe; merged to `main`). Prior: `sulu-flight-history-features` (#1/#2, merged).
 **Notebook:** [04_flight_delay_eda_modeling.ipynb](04_flight_delay_eda_modeling.ipynb)
 **Slide deck:** [slides_draft.md](slides_draft.md) (content source of truth) + `Tunisair Flight Delay Deck.html` / `Tunisair Flight Delay Deck v2.html` (rendered)
 **Data product:** [app/](app/) — Streamlit "Tunisair Delay-Alert" (see `app/README.md`)
@@ -38,8 +38,14 @@ Session focus: **improving prediction accuracy & UX** (the roadmap below). Both 
 - **No browser in the sandbox** (no root; Chromium libs missing) — the slider fix was verified by reading Streamlit's compiled `Slider.js` to find the real emotion classes, not by rendering.
 - `data/weather_cache/` is **gitignored** — regenerate with `scripts/fetch_weather.py`.
 
-### Immediate next options (discussed)
-Wire #1's FLTID median in (cheap); add **congestion (#3)**, **fresher data (#4)**, **calibrated classifier (#5)**, **"closer to departure" mode (#6)**; **METAR** for fog/thunderstorm naming. See the prioritized list below.
+### Roadmap #5 — calibrated risk classifier + quantile range → *shipped into the app*
+- Experiment [scripts/experiment_risk_classifier.py](scripts/experiment_risk_classifier.py); write-up [RISK_CLASSIFIER_EXPERIMENT.md](RISK_CLASSIFIER_EXPERIMENT.md).
+- **The app no longer predicts a single mean-minutes number.** `build_app_data.py` now trains **two time-aware calibrated classifiers** (P(delay≥15), P(delay≥60); base on earliest 80% by date, isotonic calibration on the recent 20% — beats temporal drift) and **three quantile regressors** (p50/p75/p90). Hold-out: **AUC 0.80 (≥15) / 0.76 (≥60)**, Brier 0.18/0.16. Model is now **~2 MB** (was 13 MB RF).
+- `delay_core.py`: risk band comes from calibrated **probabilities** (High if P≥60 ≥ 0.33; Moderate if P≥15 ≥ 0.50) not from thresholding a mean; the range is **flight-specific quantiles** (clamped monotonic). Weather ladder shows per-scenario median + P(≥60); headline = weather-weighted outlook. UI shows "Typical delay ~q50 (up to q75 · bad day q90)" + "Chance of a delay: X% ≥15 min · Y% ≥60 min".
+- **Insight for later:** both classifier & quantiles still slightly **under-cover the tail** on the future hold-out → strongest argument yet for **fresher data (#4)**.
+
+### Immediate next options
+Wire #1's FLTID median in (cheap); add **congestion (#3)**; **fresher 2022–25 data (#4)** (now the clearest ceiling); **"closer to departure" mode (#6)**; **live-forecast highlight** in the ladder; **METAR** for fog/thunderstorm naming.
 
 ---
 

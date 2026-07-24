@@ -13,7 +13,7 @@ Predicting flight **delay in minutes** for Tunisair, framed for two audiences: a
 | Constant-mean baseline | 141.95 | the number to beat |
 | **Operational model** (tuned RF, uses prior-leg delay) | **108.64** | −24%; for the ops team; assumes prior-leg delay known at prediction time |
 | Submittable model (no prior-leg delay) | 130.92 | the Zindi entry → `zindi_submission.csv` |
-| Booking-time model (app) | ~137 | honest about the *category* at booking; powers the Streamlit app |
+| Booking-time model (app) | — | reframed as a **calibrated risk classifier** (ROC-AUC 0.80 for ≥15 min, 0.76 for ≥60 min) + **quantile range**; powers the Streamlit app |
 
 **Key insight:** error is dominated by the **severe-delay tail** (180 min+), driven mostly by delay *propagation* (a plane inheriting its previous leg's delay). Features that don't speak to the tail (weather, per-flight history) barely move RMSE — but are still valuable for *communicating risk* to travellers (see the experiment write-ups).
 
@@ -51,7 +51,7 @@ Every file, what it contains, and why it matters.
 
 ### 🖥️ The data product — `app/` (Streamlit "Tunisair Delay-Alert")
 
-A **booking-time** web app: type a flight → get a delay-risk category (🟢/🟡/🔴), an honest typical-delay range, a **weather-sensitivity ladder** (how the flight runs under that airport's plausible weather — calm/rough/severe, named), plain-language advice, and calmer alternative departure times.
+A **booking-time** web app: type a flight → get a delay-risk category (🟢/🟡/🔴) backed by **calibrated probabilities** (chance of a 15+/60+ min delay), a **flight-specific quantile range** (typical / up-to / bad-day), a **weather-sensitivity ladder** (how the flight runs under that airport's plausible weather — calm/rough/severe, named), plain-language advice, and calmer alternative departure times.
 
 | File | Contains | Significance |
 |---|---|---|
@@ -69,7 +69,8 @@ A **booking-time** web app: type a flight → get a delay-risk category (🟢/�
 
 | File | Contains | Significance |
 |---|---|---|
-| [scripts/build_app_data.py](scripts/build_app_data.py) | Trains the compact booking-time model + writes the `app/reference/*.csv` tables. | **Rebuilds all app artifacts** — run after any feature change. |
+| [scripts/build_app_data.py](scripts/build_app_data.py) | Trains the calibrated classifiers + quantile regressors + writes the `app/reference/*.csv` tables. | **Rebuilds all app artifacts** — run after any feature change. |
+| [scripts/experiment_risk_classifier.py](scripts/experiment_risk_classifier.py) | Experiment for **roadmap #5** (calibrated classifier + quantile range) with time-aware calibration. | Proved the reframe now shipped in the app: better risk separation + honest probabilities + flight-specific range. |
 | [scripts/experiment_fltid_features.py](scripts/experiment_fltid_features.py) | Experiment for **roadmap #1** (flight-number history as features), with leakage-safe evaluation. | Measured a real but small win (~0.55 min) from a single smoothed per-flight median; the kitchen-sink of stats overfits. See its write-up. |
 | [scripts/fetch_weather.py](scripts/fetch_weather.py) | Downloads & caches ERA5 hourly weather for the 15 busiest airports (Open-Meteo, no key). | One-time data pull for the weather experiment; cache is gitignored. |
 | [scripts/weather_core.py](scripts/weather_core.py) | Shared weather helpers: WMO code → human label, condition naming, flight join. | Ensures weather is named/joined consistently across experiment and (future) app. |
@@ -80,7 +81,8 @@ A **booking-time** web app: type a flight → get a delay-risk category (🟢/�
 | File | Contains | Significance |
 |---|---|---|
 | [FLTID_FEATURE_EXPERIMENT.md](FLTID_FEATURE_EXPERIMENT.md) | Plain-language findings for roadmap #1 (flight-number history). | Evidence behind the pending decision to wire the flight-median feature into the app. |
-| [WEATHER_SCENARIO_EXPERIMENT.md](WEATHER_SCENARIO_EXPERIMENT.md) | Plain-language findings for roadmap #2 (weather scenario ladder). | Evidence for building a per-flight, named, probability-weighted weather ladder into the app. |
+| [WEATHER_SCENARIO_EXPERIMENT.md](WEATHER_SCENARIO_EXPERIMENT.md) | Plain-language findings for roadmap #2 (weather scenario ladder). | Evidence for the per-flight weather ladder now shipped in the app. |
+| [RISK_CLASSIFIER_EXPERIMENT.md](RISK_CLASSIFIER_EXPERIMENT.md) | Plain-language findings for roadmap #5 (calibrated classifier + quantile range). | Evidence for the classifier/quantile reframe now shipped in the app. |
 
 ### 📦 Data, models & outputs
 
@@ -90,7 +92,7 @@ A **booking-time** web app: type a flight → get a delay-risk category (🟢/�
 | [data/test.csv](data/) | Unlabelled Zindi submission set (no `target`). | Predict on this for the competition entry. |
 | [data/sample_submission.csv](data/) | Zindi submission format. | Template for the output file. |
 | `data/weather_cache/` | Cached ERA5 hourly weather (parquet). | **Gitignored** — regenerate with `scripts/fetch_weather.py`. |
-| [models/app_booking_model.joblib](models/) | The compact booking-time model (14 MB). | **Committed** — the app loads this. |
+| [models/app_booking_model.joblib](models/) | Calibrated classifiers + quantile regressors + metadata (~2 MB). | **Committed** — the app loads this. |
 | `models/delay_model*.joblib` | Large operational/submittable models (~350 MB). | **Gitignored** — regenerate by running the notebook. |
 | [zindi_submission.csv](zindi_submission.csv) | Predictions on `test.csv`. | The Zindi competition deliverable. |
 
