@@ -1,8 +1,14 @@
 """Core logic for the Tunisair Delay-Alert app.
 
 Turns booking-time inputs (flight number, departure/arrival airport, date) into a
-delay-risk category, an honest expected-delay range, and action suggestions.
-Kept UI-free so it can be unit-tested and reused.
+delay-risk category, calibrated probabilities, an honest flight-specific delay range,
+a weather-sensitivity ladder, and action suggestions. Kept UI-free so it can be
+unit-tested and reused.
+
+Since the roadmap-#5 reframe the model is not a single mean-minutes regressor:
+  * two calibrated classifiers give P(delay >= 15 min) and P(delay >= 60 min);
+  * three quantile regressors give the p50/p75/p90 delay range for THIS flight.
+See RISK_CLASSIFIER_EXPERIMENT.md.
 """
 from __future__ import annotations
 
@@ -28,10 +34,6 @@ def is_ramadan(ts):
     ts = pd.Timestamp(ts)
     return Gregorian(ts.year, ts.month, ts.day).to_hijri().month == 9
 
-# Risk bands (minutes of predicted delay). Global delay quantiles are the fallback
-# range when a route has too little history.
-GLOBAL_RANGE = (0.0, 14.0, 43.0)  # p25, p50, p75 of the whole training target
-
 
 @functools.lru_cache(maxsize=1)
 def _airports():
@@ -45,26 +47,26 @@ def _tn_holidays():
 
 @functools.lru_cache(maxsize=1)
 def load_bundle():
-    """Load model + reference tables once."""
-    bundle = joblib.load(_MODEL_PATH)
+    """Load models + reference tables once."""
+    b = joblib.load(_MODEL_PATH)
     route_freq = pd.read_csv(_REF / "route_freq.csv").set_index("route")["route_freq"].to_dict()
     cp_freq = (pd.read_csv(_REF / "country_pair_freq.csv")
                .set_index("country_pair")["country_pair_freq"].to_dict())
     schedule = pd.read_csv(_REF / "flight_schedule.csv")
-    delay_stats = pd.read_csv(_REF / "route_delay_stats.csv").set_index("route")
-    # Weather scenarios for the what-if ladder (roadmap #2); optional so the app still
-    # runs if the file is absent (e.g. an older build).
+    route_stats = pd.read_csv(_REF / "route_delay_stats.csv").set_index("route")
     scen_path = _REF / "weather_scenarios.csv"
     weather_scenarios = pd.read_csv(scen_path) if scen_path.exists() else pd.DataFrame()
     return {
-        "model": bundle["model"], "features": bundle["features"],
-        "risk_bands": bundle["risk_bands"], "holdout_rmse": bundle["holdout_rmse"],
-        "baseline_rmse": bundle["baseline_rmse"], "route_freq": route_freq,
-        "cp_freq": cp_freq, "schedule": schedule, "delay_stats": delay_stats,
-        "neutral_weather": bundle.get("neutral_weather", {}),
-        "weather_features": bundle.get("weather_features", []),
-        "weather_airports": set(bundle.get("weather_airports", [])),
+        "features": b["features"], "clf_late": b["clf_late"], "clf_severe": b["clf_severe"],
+        "quantiles": b["quantiles"], "quantile_levels": b["quantile_levels"],
+        "late_min": b["late_min"], "severe_min": b["severe_min"],
+        "risk_prob_thresholds": b["risk_prob_thresholds"], "metrics": b["metrics"],
+        "neutral_weather": b.get("neutral_weather", {}),
+        "weather_features": b.get("weather_features", []),
+        "weather_airports": set(b.get("weather_airports", [])),
         "weather_scenarios": weather_scenarios,
+        "route_freq": route_freq, "cp_freq": cp_freq,
+        "schedule": schedule, "route_stats": route_stats,
     }
 
 
@@ -81,8 +83,9 @@ def _haversine_km(lat1, lon1, lat2, lon2):
     return float(2 * r * np.arcsin(np.sqrt(a)))
 
 
-def make_features(dep, arr, date, hour, bundle):
-    """Build the model's booking-time feature row from typed inputs."""
+def make_features(dep, arr, date, hour, bundle, weather=None):
+    """Build the model's booking-time feature row from typed inputs. `weather` overrides the
+    neutral 'typical calm' weather defaults (used by the weather-sensitivity ladder)."""
     ts = pd.Timestamp(date) + pd.Timedelta(hours=int(hour))
     d, a = _airport(dep), _airport(arr)
     if d and a:
@@ -103,49 +106,58 @@ def make_features(dep, arr, date, hour, bundle):
         "route_freq": bundle["route_freq"].get(route, 0),
         "country_pair_freq": bundle["cp_freq"].get(country_pair, 0),
     }
-    # Weather features default to NEUTRAL "typical calm" — the headline prediction assumes
-    # an ordinary day. The weather ladder overrides these to ask the what-if questions.
     row.update(bundle.get("neutral_weather", {}))
+    if weather:
+        row.update(weather)
     return pd.DataFrame([row])[bundle["features"]]
 
 
-def risk_category(pred_minutes, bundle):
-    """Map a predicted delay to a (label, emoji) risk band."""
-    low, moderate = bundle["risk_bands"]["low"], bundle["risk_bands"]["moderate"]
-    if pred_minutes < low:
-        return "Low", "🟢"
-    if pred_minutes < moderate:
+def _proba(clf, x):
+    """Apply a (base, isotonic) calibrated classifier to one feature row -> probability."""
+    base, iso = clf
+    return float(iso.transform(base.predict_proba(x)[:, 1])[0])
+
+
+def _quantiles(bundle, x):
+    """Flight-specific p50/p75/p90 in minutes, clamped monotonic non-decreasing & >= 0."""
+    out, prev = [], 0.0
+    for q in bundle["quantile_levels"]:
+        v = max(float(bundle["quantiles"][q].predict(x)[0]), prev, 0.0)
+        out.append(v)
+        prev = v
+    return out  # [p50, p75, p90]
+
+
+def risk_from_probs(p_late, p_severe, bundle):
+    """Map calibrated probabilities to a (label, emoji) risk band."""
+    t = bundle["risk_prob_thresholds"]
+    if p_severe >= t["high_p_severe"]:
+        return "High", "🔴"
+    if p_late >= t["moderate_p_late"]:
         return "Moderate", "🟡"
-    return "High", "🔴"
+    return "Low", "🟢"
 
 
-def expected_range(route, bundle):
-    """Honest 'typical delay' range = empirical p25/p50/p75 of similar historical flights."""
-    stats = bundle["delay_stats"]
-    if route in stats.index and stats.loc[route, "n"] >= 20:
-        r = stats.loc[route]
-        return float(r["p25"]), float(r["p50"]), float(r["p75"]), int(r["n"])
-    return (*GLOBAL_RANGE, 0)
-
-
-def predict(dep, arr, date, hour, bundle):
-    """Full prediction for one flight: minutes, risk band, and the typical range."""
-    x = make_features(dep, arr, date, hour, bundle)
-    pred = float(bundle["model"].predict(x)[0])
-    label, emoji = risk_category(pred, bundle)
-    p25, p50, p75, n = expected_range(f"{dep}->{arr}", bundle)
-    return {"pred_minutes": pred, "risk": label, "emoji": emoji,
-            "p25": p25, "p50": p50, "p75": p75, "route_n": n}
+def predict(dep, arr, date, hour, bundle, weather=None):
+    """Full prediction for one flight (optionally under a specific weather scenario)."""
+    x = make_features(dep, arr, date, hour, bundle, weather)
+    p_late = _proba(bundle["clf_late"], x)
+    p_severe = _proba(bundle["clf_severe"], x)
+    risk, emoji = risk_from_probs(p_late, p_severe, bundle)
+    q50, q75, q90 = _quantiles(bundle, x)
+    route = f"{dep}->{arr}"
+    rs = bundle["route_stats"]
+    route_n = int(rs.loc[route, "n"]) if route in rs.index else 0
+    return {"p_late": p_late, "p_severe": p_severe, "risk": risk, "emoji": emoji,
+            "q50": q50, "q75": q75, "q90": q90, "route_n": route_n}
 
 
 def weather_ladder(dep, arr, date, hour, bundle):
-    """A per-flight 'what if the weather is …' ladder for the departure airport.
+    """Per-flight 'what if the weather is …' ladder for the departure airport.
 
-    At booking we can't know the weather, so instead of guessing we show how the SAME
-    flight is predicted to behave under each plausible, named weather scenario for this
-    airport+month (calm / rough / severe), with how often each occurs. Returns None when
-    the departure airport has no weather coverage (then the app simply omits the ladder).
-    """
+    Runs the SAME models under each plausible, named weather scenario for this
+    airport+month (calm/rough/severe) with how often each occurs, and returns a
+    probability-weighted headline. None when the airport has no weather coverage."""
     if dep not in bundle.get("weather_airports", set()):
         return None
     scen = bundle["weather_scenarios"]
@@ -156,31 +168,28 @@ def weather_ladder(dep, arr, date, hour, bundle):
     if bands.empty:
         return None
 
-    base_row = make_features(dep, arr, date, hour, bundle).iloc[0].to_dict()
-    wx_feats = bundle["weather_features"]
+    wf = bundle["weather_features"]
     order = {"calm": 0, "rough": 1, "severe": 2}
     rungs = []
     for _, b in bands.sort_values("band", key=lambda s: s.map(order)).iterrows():
-        row = dict(base_row)
-        for f in wx_feats:
-            row[f] = b[f]
-        pred = float(bundle["model"].predict(pd.DataFrame([row])[bundle["features"]])[0])
-        rungs.append({"band": b["band"], "label": b["label"], "prob": float(b["prob"]),
-                      "raw_pred": pred})
+        r = predict(dep, arr, date, hour, bundle, weather={f: b[f] for f in wf})
+        rungs.append({"band": b["band"], "label": b["label"], "prob": float(b["prob"]), **r})
 
-    # Honest weighted expectation uses the raw predictions...
-    weighted = sum(r["prob"] * r["raw_pred"] for r in rungs)
-    # ...but for DISPLAY, clamp so a more-severe rung never shows fewer minutes than a
-    # calmer one (random forests can wobble on a weak signal).
-    running = float("-inf")
+    # Probability-weighted headline (the ladder decomposes this).
+    def wavg(key):
+        return sum(x["prob"] * x[key] for x in rungs)
+    wp_late, wp_severe = wavg("p_late"), wavg("p_severe")
+    wrisk, wemoji = risk_from_probs(wp_late, wp_severe, bundle)
+    weighted = {"p_late": wp_late, "p_severe": wp_severe, "q50": wavg("q50"),
+                "q75": wavg("q75"), "q90": wavg("q90"), "risk": wrisk, "emoji": wemoji}
+
+    # Monotonic display of the per-rung median (RF/GBM can wobble on a weak signal).
+    running = 0.0
     for r in rungs:
-        running = max(running, r["raw_pred"])
-        r["pred_minutes"] = running
-        label, emoji = risk_category(running, bundle)
-        r["risk"], r["emoji"] = label, emoji
-    spread = rungs[-1]["pred_minutes"] - rungs[0]["pred_minutes"]
-    return {"rungs": rungs, "weighted": weighted, "spread": spread,
-            "sensitive": spread >= 5.0}
+        running = max(running, r["q50"])
+        r["disp_q50"] = running
+    spread = rungs[-1]["disp_q50"] - rungs[0]["disp_q50"]
+    return {"rungs": rungs, "weighted": weighted, "spread": spread, "sensitive": spread >= 5.0}
 
 
 def action_suggestions(risk):
@@ -205,22 +214,20 @@ def action_suggestions(risk):
 
 
 def alternatives(dep, arr, date, bundle, top=4):
-    """Calmer departure *times* on the same route, scored and sorted lowest-risk first.
+    """Calmer departure *times* on the same route, ranked by lowest chance of a delay.
 
     For a fixed route and date only the departure hour changes the prediction, so we
-    rank the route's distinct scheduled departure times and surface the calmest ones.
-    """
+    rank the route's distinct scheduled departure times and surface the calmest ones."""
     route_flights = bundle["schedule"].query("DEPSTN == @dep and ARRSTN == @arr")
     if route_flights.empty:
-        return pd.DataFrame(columns=["hour", "FLTID", "pred_minutes", "risk", "emoji"])
-    # One representative flight per distinct departure hour (busiest FLTID for that hour).
+        return pd.DataFrame(columns=["hour", "FLTID", "p_late", "q50", "risk", "emoji"])
     by_hour = (route_flights.sort_values("n_flights", ascending=False)
                .drop_duplicates("typical_hour"))
     rows = []
     for _, f in by_hour.iterrows():
         p = predict(dep, arr, date, int(f["typical_hour"]), bundle)
         rows.append({"hour": int(f["typical_hour"]), "FLTID": f["FLTID"],
-                     "pred_minutes": round(p["pred_minutes"], 1),
+                     "p_late": p["p_late"], "q50": round(p["q50"], 1),
                      "risk": p["risk"], "emoji": p["emoji"]})
-    out = pd.DataFrame(rows).sort_values(["pred_minutes", "hour"])
+    out = pd.DataFrame(rows).sort_values(["p_late", "hour"])
     return out.head(top).reset_index(drop=True)

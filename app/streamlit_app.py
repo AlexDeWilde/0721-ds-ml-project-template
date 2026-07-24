@@ -219,19 +219,17 @@ if dep == arr:
 
 result = dc.predict(dep, arr, str(date), hour, bundle)
 ladder = dc.weather_ladder(dep, arr, str(date), hour, bundle)
-# When we have weather coverage, the headline is the weather-weighted expected delay
-# (the ladder below decomposes it); otherwise it's the typical-day prediction.
-if ladder:
-    headline_min = ladder["weighted"]
-    risk, emoji = dc.risk_category(headline_min, bundle)
-else:
-    headline_min = result["pred_minutes"]
-    risk, emoji = result["risk"], result["emoji"]
+# When we have weather coverage, the headline is the weather-weighted outlook (the ladder
+# below decomposes it); otherwise it's the typical-day prediction.
+src = ladder["weighted"] if ladder else result
+risk, emoji = src["risk"], src["emoji"]
+q50, q75, q90 = src["q50"], src["q75"], src["q90"]
+p_late, p_severe = src["p_late"], src["p_severe"]
+route_n = result["route_n"]
 
 st.divider()
 risk_class = {"Low": "risk-low", "Moderate": "risk-moderate", "High": "risk-high"}[risk]
-note = (f"25th–median–75th percentile of {result['route_n']:,} past flights"
-        if result["route_n"] else "network-wide typical range (little history for this route)")
+hist = f"from {route_n:,} past flights on this route" if route_n else "little route history"
 st.markdown(
     f"""
     <div class="result-card">
@@ -239,13 +237,14 @@ st.markdown(
       <div class="route-line">{dep} → {arr} · {date:%a %d %b %Y} · {fmt_hour(hour)}</div>
       <div class="metric-row">
         <div class="metric">
-          <div class="metric-label primary">Average expected delay</div>
-          <div class="metric-value primary">~{headline_min:.0f} min</div>
+          <div class="metric-label primary">Typical delay</div>
+          <div class="metric-value primary">~{q50:.0f} min</div>
+          <div class="metric-note">usual up to ~{q75:.0f} min · bad day ~{q90:.0f} min</div>
         </div>
         <div class="metric metric-right">
-          <div class="metric-label">Typical delay on this route</div>
-          <div class="metric-value">{result['p25']:.0f}–{result['p50']:.0f}–{result['p75']:.0f} min</div>
-          <div class="metric-note">{note}</div>
+          <div class="metric-label">Chance of a delay</div>
+          <div class="metric-value">{p_late*100:.0f}% <span style="font-size:0.95rem;color:#666">≥ 15 min</span></div>
+          <div class="metric-note">{p_severe*100:.0f}% chance of a 60+ min delay · {hist}</div>
         </div>
       </div>
     </div>
@@ -269,23 +268,27 @@ if ladder:
             f"<div class='wx-row'>"
             f"<span class='wx-cond'>{weather_icon(r['label'])}<span>{r['label']}</span></span>"
             f"<span class='wx-prob'>{r['prob']*100:.0f}% of days</span>"
-            f"<span class='wx-min' style='color:{color}'>{r['emoji']} ~{r['pred_minutes']:.0f} min</span>"
+            f"<span class='wx-min' style='color:{color}'>{r['emoji']} ~{r['disp_q50']:.0f} min "
+            f"<span style='font-weight:500;font-size:0.82rem'>· {r['p_severe']*100:.0f}% 60+</span></span>"
             f"</div>"
         )
+    w = ladder["weighted"]
     note = (
         "" if ladder["sensitive"]
         else "<div class='wx-note'>This flight isn't very weather-sensitive — "
-             "weather shifts the expected delay by only a few minutes.</div>"
+             "weather shifts the typical delay by only a few minutes.</div>"
     )
     st.markdown(
         f"""
         <div class="result-card">
           <div class="wx-title">🌦️ Weather sensitivity at {dep} in {date:%B}</div>
-          <div class="wx-sub">You can't know the weather when booking, so here's how this flight
-          tends to run across {dep}'s typical {date:%B} conditions — and how often each occurs.</div>
+          <div class="wx-sub">You can't know the weather when booking, so here's the typical delay
+          (and chance of a 60+ min delay) under {dep}'s plausible {date:%B} conditions, and how
+          often each occurs.</div>
           {rows_html}
-          <div class="wx-outlook">Weather-weighted outlook: <b>~{ladder['weighted']:.0f} min</b>
-          — this is the headline estimate above.</div>
+          <div class="wx-outlook">Weather-weighted outlook: <b>{w['emoji']} {w['risk']}</b> ·
+          typically ~{w['q50']:.0f} min · {w['p_severe']*100:.0f}% chance of 60+ min
+          — this is the headline above.</div>
           {note}
         </div>
         """,
@@ -310,8 +313,9 @@ if not alts.empty and len(alts) > 1:
         Date=f"{date:%a %d %b %Y}",
         Departure=alts["hour"].map(fmt_hour),
         Risk=alts["emoji"] + " " + alts["risk"],
-        Estimate=alts["pred_minutes"].map(lambda m: f"~{m:.0f} min"),
-    )[["Date", "Departure", "Risk", "Estimate"]]
+        **{"Chance of delay": alts["p_late"].map(lambda p: f"{p*100:.0f}% ≥ 15 min")},
+        **{"Typical": alts["q50"].map(lambda m: f"~{m:.0f} min")},
+    )[["Date", "Departure", "Risk", "Chance of delay", "Typical"]]
     st.dataframe(show, hide_index=True, width="stretch")
 
 # ---- Honest footer ----
@@ -325,11 +329,12 @@ advance (the aircraft's earlier delays, congestion). For **weather** — which y
 know at booking — it doesn't guess a forecast; instead it shows how the flight typically runs
 across that airport's plausible weather for the month (the *weather sensitivity* card).
 
-- **What it's good at:** the **risk category** — it separates low- from high-risk flights well.
-- **What it can't do:** predict the exact minutes. Held-out error is {bundle['holdout_rmse']:.0f} min
-  (vs {bundle['baseline_rmse']:.0f} for guessing the average) — *how many* minutes a specific flight
-  slips is driven by day-of factors no booking-time tool can see. That's why we show a **range**, not
-  a false-precise number.
+- **What it predicts:** the **chance** of a delay (a calibrated probability) and a **typical
+  delay range** for this specific flight — not a single false-precise number.
+- **How good is it:** on a held-out future period it separates 15-min-late flights from on-time
+  ones with ROC-AUC **{bundle['metrics']['auc_late']}** (60+ min delays at **{bundle['metrics']['auc_severe']}**),
+  and the probabilities are calibrated (Brier {bundle['metrics']['brier_late']}). *How many* minutes a
+  specific flight slips is driven by day-of factors no booking-time tool can see — hence a range.
 - **Weather sensitivity:** available for the busiest ~15 departure airports (most Tunisair
   departures); other airports show the estimate without a weather breakdown.
 - **MVP scope:** a demo on 2016–2018 historical Tunisair data, not a live system.
