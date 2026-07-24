@@ -51,7 +51,7 @@ Every file, what it contains, and why it matters.
 
 ### 🖥️ The data product — `app/` (Streamlit "Tunisair Delay-Alert")
 
-A **booking-time** web app: type a flight → get a delay-risk category (🟢/🟡/🔴) backed by **calibrated probabilities** (chance of a 15+/60+ min delay), a **flight-specific quantile range** (typical / up-to / bad-day), a **weather-sensitivity ladder** (how the flight runs under that airport's plausible weather — calm/rough/severe, named), plain-language advice, and calmer alternative departure times.
+A **booking-time** web app: type a flight → get a delay-risk category (🟢/🟡/🔴) backed by **calibrated probabilities** (chance of a 15+/60+ min delay), a **flight-specific quantile range** (typical / up-to / bad-day), a **weather-sensitivity ladder** (how the flight runs under that airport's plausible weather — calm/rough/severe, named), plain-language advice, and calmer alternative departure times. It resolves weather by horizon — **recorded** (historical) → **live forecast** (≤16 days, Open-Meteo) → **seasonal** typical (further out) — and feeds any known weather into the risk & range.
 
 | File | Contains | Significance |
 |---|---|---|

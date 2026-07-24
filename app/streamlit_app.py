@@ -120,8 +120,23 @@ def inject_style():
           .st-key-hour_slider [data-testid="stSliderThumbValue"],
           .st-key-hour_slider [data-testid="stSliderTickBar"] * {{ color: #ffffff !important; }}
           /* White rounded result card */
-          .result-card {{ background:#ffffff; border-radius:18px; padding:1.3rem 1.6rem;
-             margin:0.4rem 0 0.8rem; color:#1a1a1a; box-shadow:0 8px 28px rgba(0,0,0,0.30); }}
+          .result-card {{ position:relative; background:#ffffff; border-radius:18px;
+             padding:1.3rem 1.6rem; margin:0.4rem 0 0.8rem; color:#1a1a1a;
+             box-shadow:0 8px 28px rgba(0,0,0,0.30); }}
+          /* Actual-weather badge, top-right corner of the result card */
+          .wx-actual {{ position:absolute; top:1.05rem; right:1.4rem; width:96px; text-align:center; }}
+          .wx-actual .wx-ic {{ width:36px; height:36px; margin:0; }}
+          .wx-actual-label {{ font-size:0.72rem; color:#8a8a8a; margin-top:3px; line-height:1.2; }}
+          .wx-actual-kind {{ text-transform:uppercase; letter-spacing:0.6px; font-size:0.58rem;
+             font-weight:700; margin-top:1px; }}
+          .wx-kind-recorded {{ color:#9a8a8a; }}
+          .wx-kind-forecast {{ color:#1d4ed8; }}
+          .wx-kind-seasonal {{ color:#9a5b00; }}
+          /* highlighted ladder rung = the recorded/forecast condition for the chosen date */
+          .wx-row-hl {{ background:#eef4ff; border-radius:8px; }}
+          .wx-hl-tag {{ display:inline-block; font-size:0.58rem; font-weight:700;
+             text-transform:uppercase; letter-spacing:0.4px; color:#1d4ed8; background:#e0e9ff;
+             border-radius:6px; padding:1px 5px; margin-left:6px; }}
           .risk-pill {{ display:inline-block; padding:0.3rem 0.95rem; border-radius:999px;
              font-weight:700; font-size:1.1rem; }}
           .risk-low {{ background:#e6f5ec; color:#1b7e3f; }}
@@ -219,9 +234,16 @@ if dep == arr:
 
 result = dc.predict(dep, arr, str(date), hour, bundle)
 ladder = dc.weather_ladder(dep, arr, str(date), hour, bundle)
-# When we have weather coverage, the headline is the weather-weighted outlook (the ladder
-# below decomposes it); otherwise it's the typical-day prediction.
-src = ladder["weighted"] if ladder else result
+# Best available weather for the date: RECORDED (historical) -> FORECAST (<=16 days) -> SEASONAL.
+wx = dc.resolve_weather(dep, str(date), hour, bundle)
+# If we KNOW the weather (recorded or a live forecast), the risk & range are predicted UNDER
+# that specific weather. Otherwise use the weather-weighted (climatological) outlook.
+if wx and wx["kind"] in ("Recorded", "Forecast"):
+    src = dc.predict(dep, arr, str(date), hour, bundle, weather=wx["wx"])
+elif ladder:
+    src = ladder["weighted"]
+else:
+    src = result
 risk, emoji = src["risk"], src["emoji"]
 q50, q75, q90 = src["q50"], src["q75"], src["q90"]
 p_late, p_severe = src["p_late"], src["p_severe"]
@@ -230,9 +252,17 @@ route_n = result["route_n"]
 st.divider()
 risk_class = {"Low": "risk-low", "Moderate": "risk-moderate", "High": "risk-high"}[risk]
 hist = f"from {route_n:,} past flights on this route" if route_n else "little route history"
+badge_html = (
+    f"<div class='wx-actual' title='{wx['kind']} weather at {dep}'>"
+    f"{weather_icon(wx['label'])}"
+    f"<div class='wx-actual-label'>{wx['label']}"
+    f"<div class='wx-actual-kind wx-kind-{wx['kind'].lower()}'>{wx['kind']}</div></div></div>"
+    if wx else ""
+)
 st.markdown(
     f"""
     <div class="result-card">
+      {badge_html}
       <span class="risk-pill {risk_class}">{emoji} {risk} delay risk</span>
       <div class="route-line">{dep} → {arr} · {date:%a %d %b %Y} · {fmt_hour(hour)}</div>
       <div class="metric-row">
@@ -252,21 +282,32 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-if date.year > 2018:
+if wx and wx["kind"] == "Recorded":
+    st.caption(f"ℹ️ Risk and range reflect the **actual recorded** weather at {dep} that day ({wx['label']}).")
+elif wx and wx["kind"] == "Forecast":
+    st.caption(f"🔵 Risk and range use the **live weather forecast** for your date at {dep} "
+               f"({wx['label']}) — forecasts are reliable up to ~16 days ahead.")
+elif wx and wx["kind"] == "Seasonal":
+    st.caption(f"ℹ️ Your date is beyond the ~16-day forecast horizon, so the risk is weighted across "
+               f"{dep}'s **typical {date:%B}** weather (below) — a seasonal norm, not a day-specific forecast.")
+elif date.year > 2018:
     st.caption(
-        "ℹ️ This date is beyond our 2016–2018 data. The estimate projects historical patterns "
-        "for this route, month and time of day forward — it is **not** a year-specific forecast, "
-        "and assumes delay behaviour hasn't fundamentally changed since 2018."
+        "ℹ️ This date is beyond our 2016–2018 data and this airport has no weather coverage. The "
+        "estimate projects historical route/month/time-of-day patterns forward — not a year-specific forecast."
     )
 
 # ---- Weather sensitivity ladder ----
 if ladder:
+    # Highlight the rung matching the recorded/forecast condition for the chosen date.
+    hl_band = wx["band"] if (wx and wx["kind"] in ("Recorded", "Forecast")) else None
     rows_html = ""
     for r in ladder["rungs"]:
         color = RISK_TEXT_COLOR.get(r["risk"], "#111")
+        hl = " wx-row-hl" if r["band"] == hl_band else ""
+        tag = (f"<span class='wx-hl-tag'>{wx['kind']}</span>" if r["band"] == hl_band else "")
         rows_html += (
-            f"<div class='wx-row'>"
-            f"<span class='wx-cond'>{weather_icon(r['label'])}<span>{r['label']}</span></span>"
+            f"<div class='wx-row{hl}'>"
+            f"<span class='wx-cond'>{weather_icon(r['label'])}<span>{r['label']}</span>{tag}</span>"
             f"<span class='wx-prob'>{r['prob']*100:.0f}% of days</span>"
             f"<span class='wx-min' style='color:{color}'>{r['emoji']} ~{r['disp_q50']:.0f} min "
             f"<span style='font-weight:500;font-size:0.82rem'>· {r['p_severe']*100:.0f}% 60+</span></span>"
@@ -325,9 +366,11 @@ with st.expander("How this works (and its limits)"):
         f"""
 This tool uses a **booking-time model** — it knows only what a traveller does before a
 flight: the route, date, and time of day. It does **not** use signals you can't know in
-advance (the aircraft's earlier delays, congestion). For **weather** — which you also can't
-know at booking — it doesn't guess a forecast; instead it shows how the flight typically runs
-across that airport's plausible weather for the month (the *weather sensitivity* card).
+advance (the aircraft's earlier delays, congestion). For **weather** it uses the best source for
+your date: the **live forecast** within ~16 days, the **recorded** weather for historical dates,
+and the airport's **typical/seasonal** weather further out (no real forecast exists beyond ~16
+days). When the weather is known it's fed into the risk & range; the *weather-sensitivity* card
+always shows the full spread of conditions.
 
 - **What it predicts:** the **chance** of a delay (a calibrated probability) and a **typical
   delay range** for this specific flight — not a single false-precise number.

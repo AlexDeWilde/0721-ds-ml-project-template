@@ -13,6 +13,10 @@ See RISK_CLASSIFIER_EXPERIMENT.md.
 from __future__ import annotations
 
 import functools
+import json
+import sys
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
 import airportsdata
@@ -24,6 +28,14 @@ from hijridate import Gregorian
 
 _REF = Path(__file__).parent / "reference"
 _MODEL_PATH = Path(__file__).parent.parent / "models" / "app_booking_model.joblib"
+
+# Optional: the shared weather helper (lets us show the ACTUAL recorded weather for a
+# historical date). Absent in a bare deploy -> the app just omits the corner icon.
+sys.path.insert(0, str(Path(__file__).parent.parent / "scripts"))
+try:
+    import weather_core as _wc
+except Exception:  # noqa: BLE001
+    _wc = None
 
 AIRPORT_OVERRIDES = {"SXF": {"country": "DE", "lat": 52.3667, "lon": 13.5033, "tz": "Europe/Berlin"}}
 
@@ -190,6 +202,105 @@ def weather_ladder(dep, arr, date, hour, bundle):
         r["disp_q50"] = running
     spread = rungs[-1]["disp_q50"] - rungs[0]["disp_q50"]
     return {"rungs": rungs, "weighted": weighted, "spread": spread, "sensitive": spread >= 5.0}
+
+
+def actual_condition(dep, date, hour, bundle):
+    """The actual recorded departure weather for the chosen date+hour (historical data),
+    as {gust, precip, snow, code, label}. None for uncovered airports or non-historical
+    dates — the app then shows no weather icon."""
+    if _wc is None or dep not in bundle.get("weather_airports", set()):
+        return None
+    ts = pd.Timestamp(date) + pd.Timedelta(hours=int(hour))
+    return _wc.actual_weather(dep, ts)
+
+
+_FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
+_forecast_cache: dict = {}  # (airport, fetch_date) -> hourly dataframe (or None)
+
+
+def _forecast_hourly(dep):
+    """Fetch (and day-cache) Open-Meteo's ~16-day hourly forecast for a departure airport,
+    in local time. Returns a dataframe indexed by hour, or None on any failure/offline."""
+    a = _airport(dep)
+    if a is None:
+        return None
+    key = (dep, pd.Timestamp.now().normalize())
+    if key in _forecast_cache:
+        return _forecast_cache[key]
+    q = urllib.parse.urlencode({
+        "latitude": a["lat"], "longitude": a["lon"],
+        "hourly": "wind_gusts_10m,precipitation,snowfall,weather_code,temperature_2m",
+        "forecast_days": 16, "timezone": a.get("tz", "UTC"),
+    })
+    try:
+        with urllib.request.urlopen(f"{_FORECAST_URL}?{q}", timeout=8) as r:
+            h = json.load(r)["hourly"]
+        df = pd.DataFrame(h)
+        df["time"] = pd.to_datetime(df["time"])
+        df = df.set_index("time")
+    except Exception:  # noqa: BLE001 - offline / API error -> no forecast badge
+        df = None
+    _forecast_cache[key] = df
+    return df
+
+
+def forecast_condition(dep, date, hour):
+    """The live forecast weather for the chosen date+hour, if it falls within Open-Meteo's
+    ~16-day horizon. Returns {gust, precip, snow, code, label} or None (out of horizon /
+    offline / unknown airport). Works for any airport with coordinates."""
+    if _wc is None:
+        return None
+    df = _forecast_hourly(dep)
+    if df is None:
+        return None
+    hour_ts = (pd.Timestamp(date) + pd.Timedelta(hours=int(hour))).floor("h")
+    if hour_ts not in df.index:
+        return None
+    r = df.loc[hour_ts]
+    gust, precip = float(r["wind_gusts_10m"]), float(r["precipitation"])
+    snow, code = float(r["snowfall"]), int(r["weather_code"] or 0)
+    return {"gust": gust, "precip": precip, "snow": snow, "code": code,
+            "label": _wc.condition_name(gust, precip, snow, code)}
+
+
+def seasonal_condition(dep, date, bundle):
+    """Typical (climatological) weather for a departure airport + month, from the precomputed
+    scenario table — used for dates beyond the live-forecast horizon. Returns the single most
+    likely condition {label, wx} or None (uncovered airport)."""
+    scen = bundle.get("weather_scenarios")
+    if scen is None or scen.empty or dep not in bundle.get("weather_airports", set()):
+        return None
+    month = pd.Timestamp(date).month
+    rows = scen[(scen["airport"] == dep) & (scen["month"] == month)]
+    if rows.empty:
+        return None
+    top = rows.sort_values("prob", ascending=False).iloc[0]
+    wf = bundle["weather_features"]
+    return {"label": top["label"], "wx": {f: top[f] for f in wf}, "kind": "Seasonal", "band": None}
+
+
+def _feats_from(w):
+    """Model weather-feature dict from a raw weather reading."""
+    if _wc is None:
+        return {}
+    return {"wx_wind_gust": w["gust"], "wx_precip": w["precip"], "wx_snow": w["snow"],
+            "wx_adverse": _wc.is_adverse(w["gust"], w["precip"], w["snow"], w["code"])}
+
+
+def resolve_weather(dep, date, hour, bundle):
+    """Best available weather for a flight's date+hour, tiered by horizon:
+    RECORDED (historical) -> FORECAST (<=16 days) -> SEASONAL (climatology). Returns
+    {label, wx (model features), kind, band} or None. `band` (calm/rough/severe) is set for
+    recorded/forecast so the app can highlight the matching scenario rung."""
+    a = actual_condition(dep, date, hour, bundle)
+    if a:
+        return {"label": a["label"], "wx": _feats_from(a), "kind": "Recorded",
+                "band": _wc.band_of(a["gust"], a["precip"], a["snow"], a["code"])}
+    f = forecast_condition(dep, date, hour)
+    if f:
+        return {"label": f["label"], "wx": _feats_from(f), "kind": "Forecast",
+                "band": _wc.band_of(f["gust"], f["precip"], f["snow"], f["code"])}
+    return seasonal_condition(dep, date, bundle)
 
 
 def action_suggestions(risk):
