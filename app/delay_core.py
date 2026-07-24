@@ -263,6 +263,46 @@ def forecast_condition(dep, date, hour):
             "label": _wc.condition_name(gust, precip, snow, code)}
 
 
+def seasonal_condition(dep, date, bundle):
+    """Typical (climatological) weather for a departure airport + month, from the precomputed
+    scenario table — used for dates beyond the live-forecast horizon. Returns the single most
+    likely condition {label, wx} or None (uncovered airport)."""
+    scen = bundle.get("weather_scenarios")
+    if scen is None or scen.empty or dep not in bundle.get("weather_airports", set()):
+        return None
+    month = pd.Timestamp(date).month
+    rows = scen[(scen["airport"] == dep) & (scen["month"] == month)]
+    if rows.empty:
+        return None
+    top = rows.sort_values("prob", ascending=False).iloc[0]
+    wf = bundle["weather_features"]
+    return {"label": top["label"], "wx": {f: top[f] for f in wf}, "kind": "Seasonal", "band": None}
+
+
+def _feats_from(w):
+    """Model weather-feature dict from a raw weather reading."""
+    if _wc is None:
+        return {}
+    return {"wx_wind_gust": w["gust"], "wx_precip": w["precip"], "wx_snow": w["snow"],
+            "wx_adverse": _wc.is_adverse(w["gust"], w["precip"], w["snow"], w["code"])}
+
+
+def resolve_weather(dep, date, hour, bundle):
+    """Best available weather for a flight's date+hour, tiered by horizon:
+    RECORDED (historical) -> FORECAST (<=16 days) -> SEASONAL (climatology). Returns
+    {label, wx (model features), kind, band} or None. `band` (calm/rough/severe) is set for
+    recorded/forecast so the app can highlight the matching scenario rung."""
+    a = actual_condition(dep, date, hour, bundle)
+    if a:
+        return {"label": a["label"], "wx": _feats_from(a), "kind": "Recorded",
+                "band": _wc.band_of(a["gust"], a["precip"], a["snow"], a["code"])}
+    f = forecast_condition(dep, date, hour)
+    if f:
+        return {"label": f["label"], "wx": _feats_from(f), "kind": "Forecast",
+                "band": _wc.band_of(f["gust"], f["precip"], f["snow"], f["code"])}
+    return seasonal_condition(dep, date, bundle)
+
+
 def action_suggestions(risk):
     """Plain-language, traveller-friendly advice for each risk level."""
     if risk == "Low":
