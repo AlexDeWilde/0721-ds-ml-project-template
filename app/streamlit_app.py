@@ -227,6 +227,20 @@ hour = c4.select_slider(
     key="hour_slider",
 )
 
+# When are you checking? Day-of uses the inbound aircraft's current delay — far sharper.
+timing = st.radio(
+    "When are you checking?", ["At booking", "Day of travel"], horizontal=True,
+    help="'Day of travel' uses the inbound aircraft's current delay — the strongest signal, "
+         "known only near departure. It's much more accurate but needs a day-of input.",
+)
+inbound_delay = 0
+if timing == "Day of travel":
+    inbound_delay = st.slider(
+        "Inbound aircraft currently delayed by (minutes)", 0, 240, 0, step=5,
+        help="How late is the aircraft that will operate your flight, right now? Check the "
+             "status of its previous (inbound) leg.",
+    )
+
 # ---- Prediction ----
 if dep == arr:
     st.info("Pick two different airports.")
@@ -236,14 +250,23 @@ result = dc.predict(dep, arr, str(date), hour, bundle)
 ladder = dc.weather_ladder(dep, arr, str(date), hour, bundle)
 # Best available weather for the date: RECORDED (historical) -> FORECAST (<=16 days) -> SEASONAL.
 wx = dc.resolve_weather(dep, str(date), hour, bundle)
-# If we KNOW the weather (recorded or a live forecast), the risk & range are predicted UNDER
-# that specific weather. Otherwise use the weather-weighted (climatological) outlook.
-if wx and wx["kind"] in ("Recorded", "Forecast"):
-    src = dc.predict(dep, arr, str(date), hour, bundle, weather=wx["wx"])
-elif ladder:
-    src = ladder["weighted"]
+known_wx = wx["wx"] if (wx and wx["kind"] in ("Recorded", "Forecast")) else None
+
+
+def booking_src():
+    """Booking-time headline: predict under known weather if we have it, else the
+    weather-weighted (climatological) outlook, else the plain prediction."""
+    if known_wx:
+        return dc.predict(dep, arr, str(date), hour, bundle, weather=known_wx)
+    return ladder["weighted"] if ladder else result
+
+
+if timing == "Day of travel":
+    src = dc.predict_dayof(dep, arr, str(date), hour, inbound_delay, bundle, weather=known_wx)
+    bsrc = booking_src()
 else:
-    src = result
+    src = booking_src()
+    bsrc = None
 risk, emoji = src["risk"], src["emoji"]
 q50, q75, q90 = src["q50"], src["q75"], src["q90"]
 p_late, p_severe = src["p_late"], src["p_severe"]
@@ -282,7 +305,14 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-if wx and wx["kind"] == "Recorded":
+if timing == "Day of travel":
+    st.caption(
+        f"🛬 **Day-of estimate**, assuming the inbound aircraft is **{inbound_delay} min late**. "
+        f"At booking (before that's known) we'd have said ~{bsrc['p_late']*100:.0f}% chance of a 15+ min "
+        f"delay / typically ~{bsrc['q50']:.0f} min. It's sharper because it uses the strongest signal — "
+        f"delay carried over from the aircraft's previous leg."
+    )
+elif wx and wx["kind"] == "Recorded":
     st.caption(f"ℹ️ Risk and range reflect the **actual recorded** weather at {dep} that day ({wx['label']}).")
 elif wx and wx["kind"] == "Forecast":
     st.caption(f"🔵 Risk and range use the **live weather forecast** for your date at {dep} "
@@ -296,8 +326,8 @@ elif date.year > 2018:
         "estimate projects historical route/month/time-of-day patterns forward — not a year-specific forecast."
     )
 
-# ---- Weather sensitivity ladder ----
-if ladder:
+# ---- Weather sensitivity ladder (booking mode only) ----
+if timing == "At booking" and ladder:
     # Highlight the rung matching the recorded/forecast condition for the chosen date.
     hl_band = wx["band"] if (wx and wx["kind"] in ("Recorded", "Forecast")) else None
     rows_html = ""
@@ -346,9 +376,9 @@ for tip in dc.action_suggestions(risk):
     st.markdown(f"- {tip}")
 st.divider()
 
-# ---- Alternatives ----
-alts = dc.alternatives(dep, arr, str(date), bundle)
-if not alts.empty and len(alts) > 1:
+# ---- Alternatives (booking mode only) ----
+alts = dc.alternatives(dep, arr, str(date), bundle) if timing == "At booking" else None
+if alts is not None and not alts.empty and len(alts) > 1:
     st.markdown(f"**Calmer departure times on {dep} → {arr}:**")
     show = alts.assign(
         Date=f"{date:%a %d %b %Y}",
@@ -364,20 +394,20 @@ st.divider()
 with st.expander("How this works (and its limits)"):
     st.markdown(
         f"""
-This tool uses a **booking-time model** — it knows only what a traveller does before a
-flight: the route, date, and time of day. It does **not** use signals you can't know in
-advance (the aircraft's earlier delays, congestion). For **weather** it uses the best source for
-your date: the **live forecast** within ~16 days, the **recorded** weather for historical dates,
-and the airport's **typical/seasonal** weather further out (no real forecast exists beyond ~16
-days). When the weather is known it's fed into the risk & range; the *weather-sensitivity* card
-always shows the full spread of conditions.
+This tool has **two modes**. *At booking* it knows only what a traveller does before a flight:
+route, date, time of day, and weather. *Day of travel* additionally uses the **inbound aircraft's
+current delay** — the single strongest signal — which you can only know close to departure.
+For **weather** it uses the best source for your date: the **live forecast** within ~16 days, the
+**recorded** weather for historical dates, and the airport's **typical/seasonal** weather further
+out (no real forecast exists beyond ~16 days). When weather is known it's fed into the risk & range.
 
 - **What it predicts:** the **chance** of a delay (a calibrated probability) and a **typical
   delay range** for this specific flight — not a single false-precise number.
-- **How good is it:** on a held-out future period it separates 15-min-late flights from on-time
-  ones with ROC-AUC **{bundle['metrics']['auc_late']}** (60+ min delays at **{bundle['metrics']['auc_severe']}**),
-  and the probabilities are calibrated (Brier {bundle['metrics']['brier_late']}). *How many* minutes a
-  specific flight slips is driven by day-of factors no booking-time tool can see — hence a range.
+- **How good is it:** on a held-out future period the *booking* model separates 15-min-late flights
+  from on-time ones with ROC-AUC **{bundle['metrics']['auc_late']}** (60+ min delays at **{bundle['metrics']['auc_severe']}**).
+  The *day-of* model, knowing the inbound delay, jumps to **{bundle['dayof_metrics']['auc_late']}** and
+  **{bundle['dayof_metrics']['auc_severe']}** — most big delays are *propagated* from the previous leg.
+  Probabilities are calibrated; exact minutes stay a range because the severe tail is inherently noisy.
 - **Weather sensitivity:** available for the busiest ~15 departure airports (most Tunisair
   departures); other airports show the estimate without a weather breakdown.
 - **MVP scope:** a demo on 2016–2018 historical Tunisair data, not a live system.

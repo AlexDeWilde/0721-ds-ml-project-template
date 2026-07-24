@@ -44,6 +44,10 @@ BOOKING_FEATURES = [
 ]
 WEATHER_FEATURES = wc.WEATHER_FEATURES  # wx_wind_gust, wx_precip, wx_snow, wx_adverse
 MODEL_FEATURES = BOOKING_FEATURES + WEATHER_FEATURES
+# Day-of ("closer to departure") features — known only near departure, not at booking.
+# prev_leg_delay is the single strongest predictor (delay propagation).
+PREVLEG_FEATURES = ["prev_leg_delay", "hours_since_prior_leg", "has_prior_leg"]
+DAYOF_FEATURES = MODEL_FEATURES + PREVLEG_FEATURES
 
 # Risk thresholds (minutes) the classifiers predict the probability of exceeding.
 LATE_MIN, SEVERE_MIN = 15, 60
@@ -136,30 +140,54 @@ def main():
     for f in WEATHER_FEATURES:
         train[f] = train[f].fillna(neutral[f])
 
+    # Day-of feature: each aircraft's PRIOR leg delay (delay propagation, the strongest signal).
+    # Leakage-safe: the prior leg departs strictly earlier, so its delay is known by day-of.
+    train = train.sort_values(["AC", "STD"])
+    train["prev_leg_delay"] = train.groupby("AC")["target"].shift(1)
+    _prev_std = train.groupby("AC")["STD"].shift(1)
+    train["hours_since_prior_leg"] = (train["STD"] - _prev_std).dt.total_seconds() / 3600.0
+    train["has_prior_leg"] = train["prev_leg_delay"].notna().astype(int)
+    gap_med = float(train.loc[train["has_prior_leg"] == 1, "hours_since_prior_leg"].median())
+    train["prev_leg_delay"] = train["prev_leg_delay"].fillna(0.0)
+    train["hours_since_prior_leg"] = train["hours_since_prior_leg"].fillna(gap_med)
+
     # Date-sorted view for time-aware calibration and honest evaluation.
     ts = train.sort_values("STD").reset_index(drop=True)
     X, y = ts[MODEL_FEATURES], ts["target"].to_numpy()
     y_late, y_severe = (y >= LATE_MIN).astype(int), (y >= SEVERE_MIN).astype(int)
 
-    # --- Shipped models: calibrated classifiers + quantile regressors (fit on ALL data) ---
+    def fit_quantiles(feature_cols):
+        return {q: GradientBoostingRegressor(
+            loss="quantile", alpha=q, n_estimators=300, max_depth=3,
+            learning_rate=0.05, random_state=42).fit(ts[feature_cols], y) for q in QUANTILES}
+
+    # --- Booking model: calibrated classifiers + quantile regressors (fit on ALL data) ---
     clf_late = fit_calibrated(X, y_late)
     clf_severe = fit_calibrated(X, y_severe)
-    quantiles = {}
-    for q in QUANTILES:
-        quantiles[q] = GradientBoostingRegressor(
-            loss="quantile", alpha=q, n_estimators=300, max_depth=3,
-            learning_rate=0.05, random_state=42).fit(X, y)
+    quantiles = fit_quantiles(MODEL_FEATURES)
+
+    # --- Day-of ("closer to departure") model: booking features + prior-leg signal ---
+    Xday = ts[DAYOF_FEATURES]
+    dayof_clf_late = fit_calibrated(Xday, y_late)
+    dayof_clf_severe = fit_calibrated(Xday, y_severe)
+    dayof_quantiles = fit_quantiles(DAYOF_FEATURES)
 
     # --- Honest metrics on a future hold-out (never seen by base or calibration) ---
     cut = int(len(ts) * 0.8)
     tr, va = ts.iloc[:cut], ts.iloc[cut:]
-    metrics = {}
-    for name, thr in [("late", LATE_MIN), ("severe", SEVERE_MIN)]:
-        c = fit_calibrated(tr[MODEL_FEATURES], (tr["target"].to_numpy() >= thr).astype(int))
-        p = predict_proba(c, va[MODEL_FEATURES])
-        yb = (va["target"].to_numpy() >= thr).astype(int)
-        metrics[f"auc_{name}"] = round(float(roc_auc_score(yb, p)), 3)
-        metrics[f"brier_{name}"] = round(float(brier_score_loss(yb, p)), 3)
+
+    def holdout_metrics(feature_cols):
+        m = {}
+        for name, thr in [("late", LATE_MIN), ("severe", SEVERE_MIN)]:
+            c = fit_calibrated(tr[feature_cols], (tr["target"].to_numpy() >= thr).astype(int))
+            p = predict_proba(c, va[feature_cols])
+            yb = (va["target"].to_numpy() >= thr).astype(int)
+            m[f"auc_{name}"] = round(float(roc_auc_score(yb, p)), 3)
+            m[f"brier_{name}"] = round(float(brier_score_loss(yb, p)), 3)
+        return m
+
+    metrics = holdout_metrics(MODEL_FEATURES)
+    dayof_metrics = holdout_metrics(DAYOF_FEATURES)
 
     # Risk-band distribution sanity check on the full data.
     p_late_all = predict_proba(clf_late, X)
@@ -175,7 +203,12 @@ def main():
          "late_min": LATE_MIN, "severe_min": SEVERE_MIN,
          "risk_prob_thresholds": RISK_PROB_THRESHOLDS, "metrics": metrics,
          "neutral_weather": neutral, "weather_features": WEATHER_FEATURES,
-         "weather_airports": covered},
+         "weather_airports": covered,
+         # Day-of ("closer to departure") models + metadata.
+         "dayof_features": DAYOF_FEATURES, "prevleg_features": PREVLEG_FEATURES,
+         "dayof_clf_late": dayof_clf_late, "dayof_clf_severe": dayof_clf_severe,
+         "dayof_quantiles": dayof_quantiles, "dayof_metrics": dayof_metrics,
+         "dayof_typical_gap": round(gap_med, 2)},
         "models/app_booking_model.joblib",
     )
 
@@ -208,8 +241,11 @@ def main():
     stats.to_csv("app/reference/route_delay_stats.csv", index=False)
 
     print("Built app artifacts:")
-    print(f"  risk classifiers (hold-out): late  AUC {metrics['auc_late']} Brier {metrics['brier_late']}"
+    print(f"  booking classifiers (hold-out): late AUC {metrics['auc_late']} Brier {metrics['brier_late']}"
           f" | severe AUC {metrics['auc_severe']} Brier {metrics['brier_severe']}")
+    print(f"  day-of   classifiers (hold-out): late AUC {dayof_metrics['auc_late']} "
+          f"Brier {dayof_metrics['brier_late']} | severe AUC {dayof_metrics['auc_severe']} "
+          f"Brier {dayof_metrics['brier_severe']} | typical prior-leg gap {gap_med:.1f}h")
     print(f"  quantile regressors: p50/p75/p90 | features {len(MODEL_FEATURES)} "
           f"(+{len(WEATHER_FEATURES)} weather)")
     print(f"  risk-band mix: {dist}")

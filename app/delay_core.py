@@ -79,6 +79,11 @@ def load_bundle():
         "weather_scenarios": weather_scenarios,
         "route_freq": route_freq, "cp_freq": cp_freq,
         "schedule": schedule, "route_stats": route_stats,
+        # Day-of ("closer to departure") models — present since the roadmap-#6 build.
+        "dayof_features": b.get("dayof_features"), "dayof_clf_late": b.get("dayof_clf_late"),
+        "dayof_clf_severe": b.get("dayof_clf_severe"), "dayof_quantiles": b.get("dayof_quantiles"),
+        "dayof_metrics": b.get("dayof_metrics", {}),
+        "dayof_typical_gap": b.get("dayof_typical_gap", 3.6),
     }
 
 
@@ -130,11 +135,11 @@ def _proba(clf, x):
     return float(iso.transform(base.predict_proba(x)[:, 1])[0])
 
 
-def _quantiles(bundle, x):
+def _quantiles(qmodels, levels, x):
     """Flight-specific p50/p75/p90 in minutes, clamped monotonic non-decreasing & >= 0."""
     out, prev = [], 0.0
-    for q in bundle["quantile_levels"]:
-        v = max(float(bundle["quantiles"][q].predict(x)[0]), prev, 0.0)
+    for q in levels:
+        v = max(float(qmodels[q].predict(x)[0]), prev, 0.0)
         out.append(v)
         prev = v
     return out  # [p50, p75, p90]
@@ -156,7 +161,29 @@ def predict(dep, arr, date, hour, bundle, weather=None):
     p_late = _proba(bundle["clf_late"], x)
     p_severe = _proba(bundle["clf_severe"], x)
     risk, emoji = risk_from_probs(p_late, p_severe, bundle)
-    q50, q75, q90 = _quantiles(bundle, x)
+    q50, q75, q90 = _quantiles(bundle["quantiles"], bundle["quantile_levels"], x)
+    route = f"{dep}->{arr}"
+    rs = bundle["route_stats"]
+    route_n = int(rs.loc[route, "n"]) if route in rs.index else 0
+    return {"p_late": p_late, "p_severe": p_severe, "risk": risk, "emoji": emoji,
+            "q50": q50, "q75": q75, "q90": q90, "route_n": route_n}
+
+
+def predict_dayof(dep, arr, date, hour, prev_leg_delay, bundle, weather=None):
+    """'Closer to departure' prediction: adds the inbound aircraft's current delay
+    (prev_leg_delay, in minutes) — the strongest signal, known only near departure. Uses
+    the day-of model set. Falls back to booking-time predict() if day-of models are absent."""
+    if bundle.get("dayof_clf_late") is None:
+        return predict(dep, arr, date, hour, bundle, weather)
+    base = make_features(dep, arr, date, hour, bundle, weather).iloc[0].to_dict()
+    base["prev_leg_delay"] = float(prev_leg_delay)
+    base["hours_since_prior_leg"] = bundle["dayof_typical_gap"]
+    base["has_prior_leg"] = 1
+    x = pd.DataFrame([base])[bundle["dayof_features"]]
+    p_late = _proba(bundle["dayof_clf_late"], x)
+    p_severe = _proba(bundle["dayof_clf_severe"], x)
+    risk, emoji = risk_from_probs(p_late, p_severe, bundle)
+    q50, q75, q90 = _quantiles(bundle["dayof_quantiles"], bundle["quantile_levels"], x)
     route = f"{dep}->{arr}"
     rs = bundle["route_stats"]
     route_n = int(rs.loc[route, "n"]) if route in rs.index else 0
