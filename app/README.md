@@ -38,6 +38,18 @@ departure airports (~77% of flights), cached by `scripts/fetch_weather.py`; othe
 estimate without a weather ladder. Fog and thunderstorms aren't represented in ERA5, so they aren't
 shown yet (a future METAR upgrade). See `WEATHER_SCENARIO_EXPERIMENT.md` for the evidence behind this.
 
+**Weather is resolved by horizon** and the known weather is fed into the prediction:
+
+| Chosen date | Source | Badge |
+|---|---|---|
+| 2016–2018 | actual recorded weather (ERA5 cache) | RECORDED |
+| within ~16 days of today | **live forecast** (Open-Meteo, fetched at run time) | FORECAST |
+| beyond ~16 days (months / next year) | the airport's **typical seasonal** weather | SEASONAL |
+
+For recorded/forecast dates the risk & range are predicted **under that specific weather** and the
+matching ladder row is highlighted. Beyond ~16 days no genuine day-specific forecast exists, so the
+app falls back to the seasonal norm (clearly labelled) — the forecast call fails soft when offline.
+
 Regenerate all of the above from the training data with:
 
 ```bash

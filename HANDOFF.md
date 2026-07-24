@@ -3,7 +3,7 @@
 > **Purpose:** This document is a complete handoff of a Claude Code working session on `04_flight_delay_eda_modeling.ipynb`. It captures what was prompted, what was decided, what was built, the current project-board state, and exactly what to do next. Pull this repo, read this file top to bottom, and you can continue seamlessly in your own VS Code + Claude session.
 
 **Last updated:** 2026-07-24 (accuracy roadmap #1, #2 & #5; weather ladder + calibrated-classifier reframe shipped into the app)
-**Working branch:** `sulu-risk-classifier` (#5 reframe; merged to `main`). Prior: `sulu-flight-history-features` (#1/#2, merged).
+**Working branch:** `sulu-actual-weather-badge` (tiered weather: recorded/forecast/seasonal, feeds prediction; merged to `main`). Prior merged: `sulu-flight-history-features` (#1/#2), `sulu-risk-classifier` (#5).
 **Notebook:** [04_flight_delay_eda_modeling.ipynb](04_flight_delay_eda_modeling.ipynb)
 **Slide deck:** [slides_draft.md](slides_draft.md) (content source of truth) + `Tunisair Flight Delay Deck.html` / `Tunisair Flight Delay Deck v2.html` (rendered)
 **Data product:** [app/](app/) — Streamlit "Tunisair Delay-Alert" (see `app/README.md`)
@@ -44,8 +44,16 @@ Session focus: **improving prediction accuracy & UX** (the roadmap below). Both 
 - `delay_core.py`: risk band comes from calibrated **probabilities** (High if P≥60 ≥ 0.33; Moderate if P≥15 ≥ 0.50) not from thresholding a mean; the range is **flight-specific quantiles** (clamped monotonic). Weather ladder shows per-scenario median + P(≥60); headline = weather-weighted outlook. UI shows "Typical delay ~q50 (up to q75 · bad day q90)" + "Chance of a delay: X% ≥15 min · Y% ≥60 min".
 - **Insight for later:** both classifier & quantiles still slightly **under-cover the tail** on the future hold-out → strongest argument yet for **fresher data (#4)**.
 
+### App weather sourcing — tiered by horizon, feeds the prediction (shipped)
+`delay_core.resolve_weather()` picks the best weather for the chosen date and the app feeds it into the model:
+- **RECORDED** — actual ERA5 for historical (2016–2018) dates (`weather_core.actual_weather`).
+- **FORECAST** — live Open-Meteo forecast for dates **within ~16 days** of today (`delay_core.forecast_condition`, day-cached per airport, fails soft offline).
+- **SEASONAL** — the airport's typical (climatological) weather for that month, from `weather_scenarios.csv`, for any date beyond the forecast horizon (months out / next year).
+
+When weather is **known** (recorded/forecast) the risk & quantile range are predicted **under that specific weather** (not just the weather-weighted outlook), and the matching ladder rung is highlighted; a corner **badge** (icon + RECORDED/FORECAST/SEASONAL tag) shows the condition. **Honest limit:** genuine day-specific forecasts only exist ~16 days out; beyond that it's a seasonal norm, labelled as such. Branch `sulu-actual-weather-badge` (commits `86d8243`→`78ff2d1`→`e33b5b7`).
+
 ### Immediate next options
-Wire #1's FLTID median in (cheap); add **congestion (#3)**; **fresher 2022–25 data (#4)** (now the clearest ceiling); **"closer to departure" mode (#6)**; **live-forecast highlight** in the ladder; **METAR** for fog/thunderstorm naming.
+Wire #1's FLTID median in (cheap); add **congestion (#3)**; **fresher 2022–25 data (#4)** (now the clearest ceiling); **"closer to departure" mode (#6)**; **METAR** for fog/thunderstorm naming. The notebook now has an **Appendix** summarising #1/#2/#5 + the tiered weather.
 
 ---
 
