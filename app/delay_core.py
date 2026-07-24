@@ -13,7 +13,10 @@ See RISK_CLASSIFIER_EXPERIMENT.md.
 from __future__ import annotations
 
 import functools
+import json
 import sys
+import urllib.parse
+import urllib.request
 from pathlib import Path
 
 import airportsdata
@@ -209,6 +212,55 @@ def actual_condition(dep, date, hour, bundle):
         return None
     ts = pd.Timestamp(date) + pd.Timedelta(hours=int(hour))
     return _wc.actual_weather(dep, ts)
+
+
+_FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
+_forecast_cache: dict = {}  # (airport, fetch_date) -> hourly dataframe (or None)
+
+
+def _forecast_hourly(dep):
+    """Fetch (and day-cache) Open-Meteo's ~16-day hourly forecast for a departure airport,
+    in local time. Returns a dataframe indexed by hour, or None on any failure/offline."""
+    a = _airport(dep)
+    if a is None:
+        return None
+    key = (dep, pd.Timestamp.now().normalize())
+    if key in _forecast_cache:
+        return _forecast_cache[key]
+    q = urllib.parse.urlencode({
+        "latitude": a["lat"], "longitude": a["lon"],
+        "hourly": "wind_gusts_10m,precipitation,snowfall,weather_code,temperature_2m",
+        "forecast_days": 16, "timezone": a.get("tz", "UTC"),
+    })
+    try:
+        with urllib.request.urlopen(f"{_FORECAST_URL}?{q}", timeout=8) as r:
+            h = json.load(r)["hourly"]
+        df = pd.DataFrame(h)
+        df["time"] = pd.to_datetime(df["time"])
+        df = df.set_index("time")
+    except Exception:  # noqa: BLE001 - offline / API error -> no forecast badge
+        df = None
+    _forecast_cache[key] = df
+    return df
+
+
+def forecast_condition(dep, date, hour):
+    """The live forecast weather for the chosen date+hour, if it falls within Open-Meteo's
+    ~16-day horizon. Returns {gust, precip, snow, code, label} or None (out of horizon /
+    offline / unknown airport). Works for any airport with coordinates."""
+    if _wc is None:
+        return None
+    df = _forecast_hourly(dep)
+    if df is None:
+        return None
+    hour_ts = (pd.Timestamp(date) + pd.Timedelta(hours=int(hour))).floor("h")
+    if hour_ts not in df.index:
+        return None
+    r = df.loc[hour_ts]
+    gust, precip = float(r["wind_gusts_10m"]), float(r["precipitation"])
+    snow, code = float(r["snowfall"]), int(r["weather_code"] or 0)
+    return {"gust": gust, "precip": precip, "snow": snow, "code": code,
+            "label": _wc.condition_name(gust, precip, snow, code)}
 
 
 def action_suggestions(risk):

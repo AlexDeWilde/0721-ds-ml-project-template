@@ -126,7 +126,11 @@ def inject_style():
           /* Actual-weather badge, top-right corner of the result card */
           .wx-actual {{ position:absolute; top:1.05rem; right:1.4rem; width:96px; text-align:center; }}
           .wx-actual .wx-ic {{ width:36px; height:36px; margin:0; }}
-          .wx-actual-label {{ font-size:0.72rem; color:#8a8a8a; margin-top:3px; line-height:1.15; }}
+          .wx-actual-label {{ font-size:0.72rem; color:#8a8a8a; margin-top:3px; line-height:1.2; }}
+          .wx-actual-kind {{ text-transform:uppercase; letter-spacing:0.6px; font-size:0.58rem;
+             font-weight:700; margin-top:1px; }}
+          .wx-kind-recorded {{ color:#9a8a8a; }}
+          .wx-kind-forecast {{ color:#1d4ed8; }}
           .risk-pill {{ display:inline-block; padding:0.3rem 0.95rem; border-radius:999px;
              font-weight:700; font-size:1.1rem; }}
           .risk-low {{ background:#e6f5ec; color:#1b7e3f; }}
@@ -235,17 +239,24 @@ route_n = result["route_n"]
 st.divider()
 risk_class = {"Low": "risk-low", "Moderate": "risk-moderate", "High": "risk-high"}[risk]
 hist = f"from {route_n:,} past flights on this route" if route_n else "little route history"
-# Actual recorded weather for the chosen date+hour (historical dates only) -> corner badge.
-actual = dc.actual_condition(dep, str(date), hour, bundle)
-actual_html = (
-    f"<div class='wx-actual' title='Recorded weather at {dep}'>"
-    f"{weather_icon(actual['label'])}<div class='wx-actual-label'>{actual['label']}</div></div>"
-    if actual else ""
+# Corner weather badge: ACTUAL recorded weather for historical dates, else the LIVE
+# forecast if the date is within Open-Meteo's ~16-day horizon; otherwise nothing.
+wx_badge = dc.actual_condition(dep, str(date), hour, bundle)
+wx_kind = "Recorded" if wx_badge else None
+if wx_badge is None:
+    wx_badge = dc.forecast_condition(dep, str(date), hour)
+    wx_kind = "Forecast" if wx_badge else None
+badge_html = (
+    f"<div class='wx-actual' title='{wx_kind} weather at {dep}'>"
+    f"{weather_icon(wx_badge['label'])}"
+    f"<div class='wx-actual-label'>{wx_badge['label']}"
+    f"<div class='wx-actual-kind wx-kind-{wx_kind.lower()}'>{wx_kind}</div></div></div>"
+    if wx_badge else ""
 )
 st.markdown(
     f"""
     <div class="result-card">
-      {actual_html}
+      {badge_html}
       <span class="risk-pill {risk_class}">{emoji} {risk} delay risk</span>
       <div class="route-line">{dep} → {arr} · {date:%a %d %b %Y} · {fmt_hour(hour)}</div>
       <div class="metric-row">
