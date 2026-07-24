@@ -24,15 +24,23 @@ import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import root_mean_squared_error
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import weather_core as wc  # noqa: E402  (ERA5 weather join + scenario table)
+
 # Reuse the app's Ramadan logic so training and inference define the feature identically.
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "app"))
 from delay_core import is_ramadan  # noqa: E402  (Hijri-based, works for any year)
 
-# --- Feature config: booking-time features only (must match the app's runtime) ---
+# --- Feature config (must match the app's runtime) ---
+# Booking-time features a traveller knows before the flight...
 BOOKING_FEATURES = [
     "dep_hour", "dep_dow", "dep_month", "dep_is_holiday", "dep_is_ramadan",
     "gc_distance_km", "is_domestic", "route_freq", "country_pair_freq",
 ]
+# ...plus departure weather (roadmap #2). At training we use ACTUAL historical (ERA5)
+# weather; at booking we query the model under named weather scenarios (the "ladder").
+WEATHER_FEATURES = wc.WEATHER_FEATURES  # wx_wind_gust, wx_precip, wx_snow, wx_adverse
+MODEL_FEATURES = BOOKING_FEATURES + WEATHER_FEATURES
 RISK_BANDS = {"low": 15, "moderate": 60}  # predicted < 15 -> Low; < 60 -> Moderate; else High
 AIRPORT_OVERRIDES = {"SXF": {"country": "DE", "lat": 52.3667, "lon": 13.5033, "tz": "Europe/Berlin"}}
 
@@ -93,12 +101,27 @@ def main():
     train["route_freq"] = train["route"].map(route_freq).astype(int)
     train["country_pair_freq"] = train["country_pair"].map(cp_freq).astype(int)
 
+    # Join ACTUAL historical departure weather (ERA5). Covered airports (the busiest ~15)
+    # get real weather; everywhere else we fill NEUTRAL "typical calm" values so the model
+    # still trains on every row and, at booking, an uncovered airport just gets a
+    # typical-weather prediction (and no scenario ladder).
+    wx = wc.load_weather_cache()
+    covered = sorted(wc.covered_airports())
+    train = wc.attach_weather(train, wx)
+    cov_rows = train["wx_wind_gust"].notna()
+    neutral = {
+        "wx_wind_gust": round(float(train.loc[cov_rows, "wx_wind_gust"].median()), 1),
+        "wx_precip": 0.0, "wx_snow": 0.0, "wx_adverse": 0,
+    }
+    for f in WEATHER_FEATURES:
+        train[f] = train[f].fillna(neutral[f])
+
     # Compact model (kept small so it can live in git).
     model = RandomForestRegressor(
         n_estimators=120, min_samples_leaf=50, max_features="sqrt",
         n_jobs=-1, random_state=42,
     )
-    model.fit(train[BOOKING_FEATURES], train["target"])
+    model.fit(train[MODEL_FEATURES], train["target"])
 
     # Honest performance check on a chronological hold-out (last 20%).
     ts = train.sort_values("STD").reset_index(drop=True)
@@ -107,15 +130,21 @@ def main():
     hold = RandomForestRegressor(
         n_estimators=120, min_samples_leaf=50, max_features="sqrt",
         n_jobs=-1, random_state=42,
-    ).fit(tr[BOOKING_FEATURES], tr["target"])
-    rmse = root_mean_squared_error(va["target"], hold.predict(va[BOOKING_FEATURES]))
+    ).fit(tr[MODEL_FEATURES], tr["target"])
+    rmse = root_mean_squared_error(va["target"], hold.predict(va[MODEL_FEATURES]))
     base = root_mean_squared_error(va["target"], [tr["target"].mean()] * len(va))
 
     joblib.dump(
-        {"model": model, "features": BOOKING_FEATURES, "risk_bands": RISK_BANDS,
-         "holdout_rmse": round(float(rmse), 2), "baseline_rmse": round(float(base), 2)},
+        {"model": model, "features": MODEL_FEATURES, "risk_bands": RISK_BANDS,
+         "holdout_rmse": round(float(rmse), 2), "baseline_rmse": round(float(base), 2),
+         "neutral_weather": neutral, "weather_features": WEATHER_FEATURES,
+         "weather_airports": covered},
         "models/app_booking_model.joblib",
     )
+
+    # Per-airport/month weather scenarios (calm/rough/severe, named, with odds) for the
+    # app's what-if ladder — precomputed so the app needs no network at run time.
+    wc.build_scenario_table(wx).to_csv("app/reference/weather_scenarios.csv", index=False)
 
     # Reference tables for the app.
     route_freq.rename_axis("route").reset_index(name="route_freq").to_csv(
@@ -146,8 +175,11 @@ def main():
 
     print("Built app artifacts:")
     print(f"  booking model: holdout RMSE {rmse:.2f} vs baseline {base:.2f} "
-          f"({(base - rmse) / base * 100:.1f}% better)")
+          f"({(base - rmse) / base * 100:.1f}% better) | features {len(MODEL_FEATURES)} "
+          f"(+{len(WEATHER_FEATURES)} weather)")
     print(f"  routes: {len(route_freq)} | flights(FLTID rows): {len(sched)}")
+    print(f"  weather: {len(covered)} covered airports, "
+          f"{cov_rows.mean()*100:.0f}% of flights had real weather | neutral fill {neutral}")
 
 
 if __name__ == "__main__":

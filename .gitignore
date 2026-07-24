@@ -140,6 +140,9 @@ dmypy.json
 .gitattributes
 
 
+# Cached raw ERA5 weather pulls (regenerate via scripts/fetch_weather.py)
+data/weather_cache/
+
 # Trained model artifacts (large; regenerate by running the notebook)
 models/*.joblib
 
