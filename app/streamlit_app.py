@@ -98,16 +98,27 @@ def inject_style():
           .app-header h1 {{ margin-bottom: 0.25rem; }}
           .app-header p {{ opacity: 0.9; margin-top: 0; }}
           /* Logo rendered entirely white, in place of the title emoji */
-          .app-logo {{ height: 1.5em; vertical-align: -0.35em; margin-right: 0.4rem;
+          .app-logo {{ height: 2em; vertical-align: -0.48em; margin-right: 0.45rem;
                        filter: brightness(0) invert(1); }}
-          /* Departure-hour slider (keyed via key="hour_slider"): white track, blue dot, white labels */
-          .st-key-hour_slider [role="slider"] {{ background-color: #1d4ed8 !important;
-             border-color: #1d4ed8 !important; box-shadow: 0 0 0 3px rgba(29,78,216,0.35) !important; }}
-          .st-key-hour_slider [data-baseweb="slider"] > div > div,
-          .st-key-hour_slider [data-baseweb="slider"] > div > div > div,
-          .st-key-hour_slider [data-baseweb="slider"] > div > div > div > div {{
-             background: #ffffff !important; }}
-          .st-key-hour_slider [data-baseweb="slider"] * {{ color: #ffffff !important; }}
+          /* Departure-hour slider (key="hour_slider"). Streamlit 1.60's slider is REACT-ARIA,
+             styled by emotion. The stable hooks are emotion `target` classes (confirmed from
+             Slider.js in this build): .e23vpic5 = the fill bar (linear-gradient of primary =
+             the red track), .e23vpic3 = the thumb circle (primary), .e23vpic4 = the value text.
+             (react-aria's own classes are overridden by emotion so they don't render.) */
+          .st-key-hour_slider .e23vpic5,
+          .st-key-hour_slider .react-aria-SliderTrack {{
+             background: #ffffff !important; background-color: #ffffff !important;
+             background-image: none !important; }}
+          .st-key-hour_slider .e23vpic3,
+          .st-key-hour_slider .react-aria-SliderThumb {{
+             background: #ffffff !important; background-color: #ffffff !important;
+             background-image: none !important;
+             border: 2px solid rgba(120,13,18,0.65) !important;
+             box-shadow: 0 1px 5px rgba(0,0,0,0.45) !important; }}
+          /* value text (e.g. "8 AM") and any tick labels: white */
+          .st-key-hour_slider .e23vpic4,
+          .st-key-hour_slider [data-testid="stSliderThumbValue"],
+          .st-key-hour_slider [data-testid="stSliderTickBar"] * {{ color: #ffffff !important; }}
           /* White rounded result card */
           .result-card {{ background:#ffffff; border-radius:18px; padding:1.3rem 1.6rem;
              margin:0.4rem 0 0.8rem; color:#1a1a1a; box-shadow:0 8px 28px rgba(0,0,0,0.30); }}
@@ -117,9 +128,13 @@ def inject_style():
           .risk-moderate {{ background:#fff3df; color:#9a5b00; }}
           .risk-high {{ background:#fde6e6; color:#b3261e; }}
           .route-line {{ color:#555; margin:0.55rem 0 1.1rem; font-size:1.02rem; font-weight:600; }}
-          .metric-row {{ display:flex; gap:3rem; flex-wrap:wrap; }}
+          .metric-row {{ display:flex; justify-content:space-between; align-items:flex-start;
+             gap:1.5rem; flex-wrap:wrap; }}
+          .metric-right {{ text-align:right; }}
           .metric-label {{ color:#666; font-size:0.82rem; }}
+          .metric-label.primary {{ color:#800020; font-size:1.08rem; font-weight:700; }}
           .metric-value {{ color:#111; font-size:1.7rem; font-weight:700; line-height:1.15; }}
+          .metric-value.primary {{ color:#800020; font-size:3rem; }}
           .metric-note {{ color:#8a8a8a; font-size:0.74rem; margin-top:0.15rem; }}
           /* Weather-sensitivity card */
           .wx-title {{ font-weight:700; font-size:1.05rem; color:#1a1a1a; }}
@@ -215,7 +230,7 @@ else:
 
 st.divider()
 risk_class = {"Low": "risk-low", "Moderate": "risk-moderate", "High": "risk-high"}[risk]
-note = (f"middle-half of {result['route_n']:,} past flights · median {result['p50']:.0f} min"
+note = (f"25th–median–75th percentile of {result['route_n']:,} past flights"
         if result["route_n"] else "network-wide typical range (little history for this route)")
 st.markdown(
     f"""
@@ -224,12 +239,12 @@ st.markdown(
       <div class="route-line">{dep} → {arr} · {date:%a %d %b %Y} · {fmt_hour(hour)}</div>
       <div class="metric-row">
         <div class="metric">
-          <div class="metric-label">Model risk estimate</div>
-          <div class="metric-value">~{headline_min:.0f} min</div>
+          <div class="metric-label primary">Average expected delay</div>
+          <div class="metric-value primary">~{headline_min:.0f} min</div>
         </div>
-        <div class="metric">
+        <div class="metric metric-right">
           <div class="metric-label">Typical delay on this route</div>
-          <div class="metric-value">{result['p25']:.0f}–{result['p75']:.0f} min</div>
+          <div class="metric-value">{result['p25']:.0f}–{result['p50']:.0f}–{result['p75']:.0f} min</div>
           <div class="metric-note">{note}</div>
         </div>
       </div>
